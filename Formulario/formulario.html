@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Formulario de Predicción</title>
+</head>
+<body>
+  <h2>🔮 Formulario de Sugerencia</h2>
+
+  <p>Introduce los datos como filas separadas por saltos de línea.  
+  Cada fila debe tener 17 números separados por comas.</p>
+
+  <textarea id="inputData" rows="6" cols="80" placeholder="Ejemplo:&#10;0,0,0,0,1,1,0,0,3,2,3,3,1,0,0,0,0&#10;1,1,0,1,0,1,1,0,2,3,1,1,0,1,1,0,1"></textarea>
+  <br><br>
+
+  <button onclick="enviarDatos()">Enviar y predecir</button>
+
+  <h3>Resultado:</h3>
+  <pre id="resultado"></pre>
+
+  <script>
+    function enviarDatos() {
+      const texto = document.getElementById("inputData").value.trim();
+      const filas = texto.split("\n").map(linea => linea.split(",").map(Number));
+
+      fetch("http://127.0.0.1:5000/predict", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ data: filas })
+      })
+      .then(response => response.json())
+      .then(json => {
+        document.getElementById("resultado").textContent = JSON.stringify(json, null, 2);
+      })
+      .catch(error => {
+        document.getElementById("resultado").textContent = "❌ Error: " + error;
+      });
+    }
+  </script>
+</body>
+</html>
