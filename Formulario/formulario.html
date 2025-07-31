@@ -1,43 +1,43 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Formulario de Predicción</title>
+    <meta charset="UTF-8">
+    <title>Formulario de Predicción - Experimento B</title>
+    <script>
+        async function enviarDatos() {
+            const datos = document.getElementById("input_datos").value.trim();
+            const arreglo = JSON.parse(datos); // espera un arreglo tipo [[...], [...]]
+
+            const respuesta = await fetch("http://127.0.0.1:5000/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ data: arreglo })
+            });
+
+            const resultado = await respuesta.json();
+
+            if (resultado.error) {
+                document.getElementById("salida").innerText = "Error: " + resultado.error;
+            } else {
+                document.getElementById("salida").innerHTML = `
+                    <h3>Predicción</h3>
+                    <strong>Random Forest:</strong> ${resultado.prediccion_random_forest}<br>
+                    <img src="data:image/png;base64,${resultado.grafico_barras_rf}" width="400"><br>
+                    <img src="data:image/png;base64,${resultado.matriz_confusion_rf}" width="400"><br>
+
+                    <strong>Gradient Boosting:</strong> ${resultado.prediccion_gradient_boosting}<br>
+                    <img src="data:image/png;base64,${resultado.grafico_barras_gb}" width="400"><br>
+                    <img src="data:image/png;base64,${resultado.matriz_confusion_gb}" width="400">
+                `;
+            }
+        }
+    </script>
 </head>
 <body>
-  <h2>🔮 Formulario de Sugerencia</h2>
-
-  <p>Introduce los datos como filas separadas por saltos de línea.  
-  Cada fila debe tener 17 números separados por comas.</p>
-
-  <textarea id="inputData" rows="6" cols="80" placeholder="Ejemplo:&#10;0,0,0,0,1,1,0,0,3,2,3,3,1,0,0,0,0&#10;1,1,0,1,0,1,1,0,2,3,1,1,0,1,1,0,1"></textarea>
-  <br><br>
-
-  <button onclick="enviarDatos()">Enviar y predecir</button>
-
-  <h3>Resultado:</h3>
-  <pre id="resultado"></pre>
-
-  <script>
-    function enviarDatos() {
-      const texto = document.getElementById("inputData").value.trim();
-      const filas = texto.split("\n").map(linea => linea.split(",").map(Number));
-
-      fetch("http://127.0.0.1:5000/predict", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ data: filas })
-      })
-      .then(response => response.json())
-      .then(json => {
-        document.getElementById("resultado").textContent = JSON.stringify(json, null, 2);
-      })
-      .catch(error => {
-        document.getElementById("resultado").textContent = "❌ Error: " + error;
-      });
-    }
-  </script>
+    <h2>Formulario de Predicción - Experimento B</h2>
+    <p>Ingresa los datos en formato JSON (ejemplo: [[0,0,1,...]])</p>
+    <textarea id="input_datos" rows="4" cols="100">[[0,0,0,0,1,1,0,0,3,2,3,3,1,0,0,0,0]]</textarea><br><br>
+    <button onclick="enviarDatos()">Enviar y Predecir</button>
+    <div id="salida"></div>
 </body>
 </html>
