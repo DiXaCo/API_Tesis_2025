@@ -1,8 +1,7 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Formulario de Evaluación de Licitación</title>
   <style>
     body {
@@ -74,7 +73,6 @@
     <div class="form-section">
       <label for="modelo">Seleccionar modelo:</label>
       <select id="modelo">
-        <option value="both">Ambos</option>
         <option value="random_forest">Random Forest</option>
         <option value="gradient_boosting">Gradient Boosting</option>
       </select>
@@ -128,16 +126,16 @@
       </select>
 
       <label>Número de adjudicaciones:</label>
-      <input type="number" id="NUMBER_AWARDS" min="0" value="0">
+      <input type="number" id="NUMBER_AWARDS" min="0" value="0" />
 
       <label>Número de lotes:</label>
-      <input type="number" id="LOTS_NUMBER" min="0" value="0">
+      <input type="number" id="LOTS_NUMBER" min="0" value="0" />
 
       <label>Número de ofertas:</label>
-      <input type="number" id="NUMBER_OFFERS" min="0" value="0">
+      <input type="number" id="NUMBER_OFFERS" min="0" value="0" />
 
       <label>Número de ofertas PYMEs:</label>
-      <input type="number" id="NUMBER_TENDERS_SME" min="0" value="0">
+      <input type="number" id="NUMBER_TENDERS_SME" min="0" value="0" />
 
       <label>CAE tipo 3:</label>
       <select id="CAE_TYPE_3">
@@ -181,6 +179,7 @@
 
   <script>
     async function obtenerPrediccion() {
+      console.log("Función obtenerPrediccion llamada");
       const modelo = document.getElementById("modelo").value;
       const entrada = {};
       const campos = [
@@ -190,9 +189,10 @@
         "CAE_TYPE_3", "MAIN_ACTIVITY_general_public_services", "CAE_TYPE_4", "CAE_TYPE_5",
         "ISO_COUNTRY_CODE_lu"
       ];
+
       campos.forEach(id => {
         const elem = document.getElementById(id);
-        entrada[id] = elem.type === "number" ? parseInt(elem.value) : parseInt(elem.value);
+        entrada[id] = parseInt(elem.value);
       });
 
       try {
@@ -201,7 +201,15 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ modelo, entrada })
         });
+
+        if (!resp.ok) {
+          const errorData = await resp.json();
+          alert("Error: " + (errorData.error || resp.statusText));
+          return;
+        }
+
         const data = await resp.json();
+        console.log("Datos recibidos del backend:", data);
         const resultadosDiv = document.getElementById("resultados");
         const resumenDiv = document.getElementById("resumen");
         resultadosDiv.innerHTML = "";
@@ -213,13 +221,30 @@
               <div class="result-title">Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</div>
               <div>Predicción: <strong>${resultado.prediccion}</strong></div>
               <div>Probabilidad: ${(resultado.probabilidad * 100).toFixed(2)}%</div>
-              <img class="lime-image" src="data:image/png;base64,${resultado.lime}" alt="Explicación LIME" />
+              ${
+                resultado.explicacion_lime && resultado.explicacion_lime.trim() !== ''
+                  ? `<img class="lime-image" src="data:image/png;base64,${resultado.explicacion_lime}" alt="Explicación LIME del modelo ${nombre}" />`
+                  : ''
+              }
             </div>`;
         };
+
 
         if (data.random_forest) mostrar("random_forest", data.random_forest);
         if (data.gradient_boosting) mostrar("gradient_boosting", data.gradient_boosting);
         if (data.mensaje) resumenDiv.innerHTML = data.mensaje;
+
+        // Mostrar reglas por clase en texto
+        if (data.reglas_por_clase) {
+          resultadosDiv.innerHTML += `<h4>Reglas de explicación por clase:</h4>`;
+          for (const [clase, reglas] of Object.entries(data.reglas_por_clase)) {
+            resultadosDiv.innerHTML += `<div><strong>Clase ${clase}:</strong><ul>`;
+            reglas.forEach(r => {
+              resultadosDiv.innerHTML += `<li>${r}</li>`;
+            });
+            resultadosDiv.innerHTML += `</ul></div>`;
+          }
+        }
       } catch (error) {
         console.error(error);
         alert("Error al obtener la predicción.");
