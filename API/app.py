@@ -1,86 +1,101 @@
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import pandas as pd
 import joblib
+import numpy as np
+import os
+import pandas as pd
+import lime
+import lime.lime_tabular
 import matplotlib.pyplot as plt
-import io
 import base64
-from pathlib import Path
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, classification_report
+import uuid
 
-# Inicializar API Flask
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://localhost:8000"], supports_credentials=True)
 
-# Cargar modelos entrenados
-MODELO_PATH = Path(__file__).resolve().parent.parent / "model" / "modelos_experimento_B.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODELO_PATH = os.path.join(BASE_DIR, "..", "model", "modelos_experimento_B.pkl")
+LIME_DIR = os.path.join(BASE_DIR, "..", "static", "lime")
+os.makedirs(LIME_DIR, exist_ok=True)
+
 modelos = joblib.load(MODELO_PATH)
-rf_model = modelos["random_forest"]
-gb_model = modelos["gradient_boosting"]
-used_features = rf_model.used_features
+used_features = modelos['random_forest'].used_features
 
-# Funciones auxiliares para gráficos
-def generar_matriz_confusion(y_true, y_pred, titulo):
-    fig, ax = plt.subplots()
-    cm = confusion_matrix(y_true, y_pred, labels=sorted(set(y_true)))
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=sorted(set(y_true)))
-    disp.plot(ax=ax, cmap='Blues')
-    ax.set_title(titulo)
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+def obtener_resultado(modelo_nombre, modelo, datos_input):
+    X_df = pd.DataFrame([datos_input])[used_features]
+    pred = modelo.predict(X_df)[0]
+    proba = modelo.predict_proba(X_df)[0].max()
+
+    explainer = lime.lime_tabular.LimeTabularExplainer(
+        training_data=np.array(X_df),
+        feature_names=used_features,
+        class_names=modelo.classes_,
+        mode="classification",
+        discretize_continuous=True
+    )
+    exp = explainer.explain_instance(
+        X_df.iloc[0],
+        lambda x: modelo.predict_proba(pd.DataFrame(x, columns=used_features)),
+        num_features=10
+    )
+
+    unique_id = uuid.uuid4().hex[:8]
+    lime_filename = f"lime_{modelo_nombre}_{unique_id}.png"
+    lime_path = os.path.join(LIME_DIR, lime_filename)
+    fig = exp.as_pyplot_figure()
+    fig.tight_layout()
+    fig.savefig(lime_path)
     plt.close(fig)
-    return base64.b64encode(buf.getvalue()).decode('utf-8')
 
-def generar_grafico_barras(probabilidades, titulo, clases):
-    fig, ax = plt.subplots()
-    ax.bar(clases, probabilidades[0])
-    ax.set_title(titulo)
-    ax.set_ylabel("Probabilidad")
-    plt.xticks(rotation=45)
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png')
-    plt.close(fig)
-    return base64.b64encode(buf.getvalue()).decode('utf-8')
+    with open(lime_path, "rb") as image_file:
+        lime_b64 = base64.b64encode(image_file.read()).decode("utf-8")
 
-@app.route("/", methods=["GET"])
-def index():
-    return "\u2705 API Experimento B activa"
+    return {
+        "modelo": modelo_nombre,
+        "prediccion": str(pred),
+        "probabilidad": round(float(proba), 4),
+        "lime": lime_b64
+    }
 
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
-        input_data = request.json.get("data")
-        df = pd.DataFrame(input_data, columns=used_features)
+        data = request.json
+        modelo_seleccionado = data.get("modelo")
+        entrada = data.get("entrada", {})
+        # Corregir clave esperada por el modelo
+        entrada["MAIN_ACTIVITY_general public\\services"] = entrada.pop("MAIN_ACTIVITY_general_public_services", 0)
 
-        # Predicciones
-        pred_rf = rf_model.predict(df).tolist()
-        pred_gb = gb_model.predict(df).tolist()
+        if not entrada or not modelo_seleccionado:
+            return jsonify({"error": "Faltan datos de entrada o modelo"}), 400
 
-        # Probabilidades y visualización (una sola fila)
-        prob_rf = rf_model.predict_proba(df)
-        prob_gb = gb_model.predict_proba(df)
+        respuesta = {}
 
-        clases_rf = rf_model.named_steps['classifier'].classes_
-        clases_gb = gb_model.named_steps['classifier'].classes_
+        if modelo_seleccionado == "random_forest":
+            respuesta["random_forest"] = obtener_resultado("random_forest", modelos["random_forest"], entrada)
 
-        barras_rf = generar_grafico_barras(prob_rf, "Random Forest - Probabilidades", clases_rf)
-        barras_gb = generar_grafico_barras(prob_gb, "Gradient Boosting - Probabilidades", clases_gb)
+        elif modelo_seleccionado == "gradient_boosting":
+            respuesta["gradient_boosting"] = obtener_resultado("gradient_boosting", modelos["gradient_boosting"], entrada)
 
-        # Para simulación: usar predicciones como "y_true" en matriz
-        matriz_rf = generar_matriz_confusion(pred_rf, pred_rf, "Matriz RF")
-        matriz_gb = generar_matriz_confusion(pred_gb, pred_gb, "Matriz GB")
+        elif modelo_seleccionado == "both":
+            rf_result = obtener_resultado("random_forest", modelos["random_forest"], entrada)
+            gb_result = obtener_resultado("gradient_boosting", modelos["gradient_boosting"], entrada)
 
-        return jsonify({
-            "prediccion_random_forest": pred_rf,
-            "prediccion_gradient_boosting": pred_gb,
-            "grafico_barras_rf": barras_rf,
-            "grafico_barras_gb": barras_gb,
-            "matriz_confusion_rf": matriz_rf,
-            "matriz_confusion_gb": matriz_gb
-        })
+            respuesta["random_forest"] = rf_result
+            respuesta["gradient_boosting"] = gb_result
+            respuesta["mensaje"] = (
+                "✅ Ambos modelos coinciden." if rf_result["prediccion"] == gb_result["prediccion"]
+                else "⚠️ Los modelos difieren. Recomendamos revisar manualmente."
+            )
+        else:
+            return jsonify({"error": "Modelo no reconocido"}), 400
+
+        return jsonify(respuesta)
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        print("❌ Error inesperado:", e)
+        return jsonify({"error": "Error interno del servidor"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)

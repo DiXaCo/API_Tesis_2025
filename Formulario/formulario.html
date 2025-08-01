@@ -1,43 +1,230 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Formulario de Predicción - Experimento B</title>
-    <script>
-        async function enviarDatos() {
-            const datos = document.getElementById("input_datos").value.trim();
-            const arreglo = JSON.parse(datos); // espera un arreglo tipo [[...], [...]]
-
-            const respuesta = await fetch("http://127.0.0.1:5000/predict", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ data: arreglo })
-            });
-
-            const resultado = await respuesta.json();
-
-            if (resultado.error) {
-                document.getElementById("salida").innerText = "Error: " + resultado.error;
-            } else {
-                document.getElementById("salida").innerHTML = `
-                    <h3>Predicción</h3>
-                    <strong>Random Forest:</strong> ${resultado.prediccion_random_forest}<br>
-                    <img src="data:image/png;base64,${resultado.grafico_barras_rf}" width="400"><br>
-                    <img src="data:image/png;base64,${resultado.matriz_confusion_rf}" width="400"><br>
-
-                    <strong>Gradient Boosting:</strong> ${resultado.prediccion_gradient_boosting}<br>
-                    <img src="data:image/png;base64,${resultado.grafico_barras_gb}" width="400"><br>
-                    <img src="data:image/png;base64,${resultado.matriz_confusion_gb}" width="400">
-                `;
-            }
-        }
-    </script>
+  <meta charset="UTF-8">
+  <title>Formulario de Evaluación de Licitación</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 20px;
+    }
+    h2 {
+      color: #2c3e50;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+    .form-section, .results-section {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      flex: 1;
+    }
+    label, select, input {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+    }
+    select, input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background-color: #2980b9;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .result-card {
+      background: #ecf0f1;
+      padding: 10px 15px;
+      margin-bottom: 15px;
+      border-left: 5px solid #3498db;
+    }
+    .result-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .lime-image {
+      width: 100%;
+      max-width: 500px;
+      margin-top: 10px;
+      border: 1px solid #ddd;
+    }
+    .summary {
+      font-weight: bold;
+      padding: 10px;
+      margin-top: 20px;
+      background-color: #f9f9c5;
+      border-left: 5px solid #f1c40f;
+    }
+  </style>
 </head>
 <body>
-    <h2>Formulario de Predicción - Experimento B</h2>
-    <p>Ingresa los datos en formato JSON (ejemplo: [[0,0,1,...]])</p>
-    <textarea id="input_datos" rows="4" cols="100">[[0,0,0,0,1,1,0,0,3,2,3,3,1,0,0,0,0]]</textarea><br><br>
-    <button onclick="enviarDatos()">Enviar y Predecir</button>
-    <div id="salida"></div>
+  <h2>Formulario de Evaluación de Licitación</h2>
+  <div class="container">
+    <div class="form-section">
+      <label for="modelo">Seleccionar modelo:</label>
+      <select id="modelo">
+        <option value="both">Ambos</option>
+        <option value="random_forest">Random Forest</option>
+        <option value="gradient_boosting">Gradient Boosting</option>
+      </select>
+
+      <label>Bajo múltiples CAE:</label>
+      <select id="B_MULTIPLE_CAE_n">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Actúa en nombre de otro:</label>
+      <select id="B_ON_BEHALF_n">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Grupo CPV 45:</label>
+      <select id="GROUP_CPV_45">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Grupo CPV 33:</label>
+      <select id="GROUP_CPV_33">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Grupo CPV 15:</label>
+      <select id="GROUP_CPV_15">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Tipo de contrato (Obras):</label>
+      <select id="TYPE_OF_CONTRACT_w">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Actividad principal: Salud:</label>
+      <select id="MAIN_ACTIVITY_health">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Código país: SI:</label>
+      <select id="ISO_COUNTRY_CODE_si">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Número de adjudicaciones:</label>
+      <input type="number" id="NUMBER_AWARDS" min="0" value="0">
+
+      <label>Número de lotes:</label>
+      <input type="number" id="LOTS_NUMBER" min="0" value="0">
+
+      <label>Número de ofertas:</label>
+      <input type="number" id="NUMBER_OFFERS" min="0" value="0">
+
+      <label>Número de ofertas PYMEs:</label>
+      <input type="number" id="NUMBER_TENDERS_SME" min="0" value="0">
+
+      <label>CAE tipo 3:</label>
+      <select id="CAE_TYPE_3">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Actividad principal: Servicios públicos generales:</label>
+      <select id="MAIN_ACTIVITY_general_public_services">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>CAE tipo 4:</label>
+      <select id="CAE_TYPE_4">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>CAE tipo 5:</label>
+      <select id="CAE_TYPE_5">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <label>Código país: LU:</label>
+      <select id="ISO_COUNTRY_CODE_lu">
+        <option value="0">No</option>
+        <option value="1">Sí</option>
+      </select>
+
+      <button onclick="obtenerPrediccion()">Obtener predicción</button>
+    </div>
+
+    <div class="results-section">
+      <h3>Resultado de los Modelos</h3>
+      <div id="resultados"></div>
+      <div id="resumen" class="summary"></div>
+    </div>
+  </div>
+
+  <script>
+    async function obtenerPrediccion() {
+      const modelo = document.getElementById("modelo").value;
+      const entrada = {};
+      const campos = [
+        "B_MULTIPLE_CAE_n", "B_ON_BEHALF_n", "GROUP_CPV_45", "GROUP_CPV_33", "GROUP_CPV_15",
+        "TYPE_OF_CONTRACT_w", "MAIN_ACTIVITY_health", "ISO_COUNTRY_CODE_si",
+        "NUMBER_AWARDS", "LOTS_NUMBER", "NUMBER_OFFERS", "NUMBER_TENDERS_SME",
+        "CAE_TYPE_3", "MAIN_ACTIVITY_general_public_services", "CAE_TYPE_4", "CAE_TYPE_5",
+        "ISO_COUNTRY_CODE_lu"
+      ];
+      campos.forEach(id => {
+        const elem = document.getElementById(id);
+        entrada[id] = elem.type === "number" ? parseInt(elem.value) : parseInt(elem.value);
+      });
+
+      try {
+        const resp = await fetch("http://localhost:5000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ modelo, entrada })
+        });
+        const data = await resp.json();
+        const resultadosDiv = document.getElementById("resultados");
+        const resumenDiv = document.getElementById("resumen");
+        resultadosDiv.innerHTML = "";
+        resumenDiv.innerHTML = "";
+
+        const mostrar = (nombre, resultado) => {
+          resultadosDiv.innerHTML += `
+            <div class="result-card">
+              <div class="result-title">Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</div>
+              <div>Predicción: <strong>${resultado.prediccion}</strong></div>
+              <div>Probabilidad: ${(resultado.probabilidad * 100).toFixed(2)}%</div>
+              <img class="lime-image" src="data:image/png;base64,${resultado.lime}" alt="Explicación LIME" />
+            </div>`;
+        };
+
+        if (data.random_forest) mostrar("random_forest", data.random_forest);
+        if (data.gradient_boosting) mostrar("gradient_boosting", data.gradient_boosting);
+        if (data.mensaje) resumenDiv.innerHTML = data.mensaje;
+      } catch (error) {
+        console.error(error);
+        alert("Error al obtener la predicción.");
+      }
+    }
+  </script>
 </body>
 </html>
