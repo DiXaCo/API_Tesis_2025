@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import os
@@ -5,7 +6,7 @@ import warnings
 warnings.filterwarnings("ignore", category=FutureWarning)
 import pandas as pd
 import joblib
-from Util.Util import generar_explica_lime
+from Util.Util import generar_explica_lime, construir_tabla_lime
 from Util.reglas_lime import convert_to_if_then
 
 app = Flask(__name__)
@@ -29,7 +30,7 @@ def predict():
         modelo_nombre = data.get("modelo")
         entrada = data.get("entrada", {})
 
-        entrada["MAIN_ACTIVITY_general public\\services"] = entrada.pop("MAIN_ACTIVITY_general_public_services", 0)
+        entrada["MAIN_ACTIVITY_general public\services"] = entrada.pop("MAIN_ACTIVITY_general_public_services", 0)
 
         for feature in used_features:
             if feature not in entrada:
@@ -45,18 +46,18 @@ def predict():
         proba = modelo.predict_proba(df)[0].max()
         lime_img = generar_explica_lime(modelo, df, used_features)
 
-        # Wrapper para que LIME pase un DataFrame a predict_proba
+        from lime.lime_tabular import LimeTabularExplainer
         def predict_proba_wrapper(x_array):
             df_temp = pd.DataFrame(x_array, columns=used_features)
             return modelo.predict_proba(df_temp)
 
-        from lime.lime_tabular import LimeTabularExplainer
         explainer = LimeTabularExplainer(
             training_data=df.values,
             feature_names=df.columns,
             class_names=modelo.classes_,
             mode='classification'
         )
+
         exp = explainer.explain_instance(
             df.iloc[0],
             predict_proba_wrapper,
@@ -67,11 +68,14 @@ def predict():
         for clase in exp.available_labels():
             reglas_texto[str(clase)] = convert_to_if_then(exp, clase, pred[0])
 
+        tabla_lime = construir_tabla_lime(exp, df)
+
         return jsonify({
             "prediccion": str(pred[0]),
             "probabilidad": round(float(proba), 4),
             "explicacion_lime": lime_img,
-            "reglas_por_clase": reglas_texto
+            "reglas_por_clase": reglas_texto,
+            "tabla_lime": tabla_lime
         })
 
     except Exception as e:
@@ -81,5 +85,3 @@ def predict():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-    

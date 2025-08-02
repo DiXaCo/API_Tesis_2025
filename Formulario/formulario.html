@@ -223,7 +223,33 @@
             reglasHTML += `</div>`;
           }
 
-          resultadosDiv.innerHTML += `
+          let tablaHTML = "";
+if (resultado.tabla_lime) {
+  tablaHTML += `
+    <div class="lime-rules" style="margin-top: 15px;">
+      <h4>Resumen de características más influyentes</h4>
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="background-color: #f0f0f0;">
+            <th style="padding: 6px; border: 1px solid #ccc;">Característica</th>
+            <th style="padding: 6px; border: 1px solid #ccc;">Valor</th>
+            <th style="padding: 6px; border: 1px solid #ccc;">Influencia</th>
+          </tr>
+        </thead>
+        <tbody>`;
+  resultado.tabla_lime.forEach(f => {
+    const icono = f.influencia === "Positiva" ? "🔥" : "🔻";
+    tablaHTML += `
+      <tr>
+        <td style="padding: 6px; border: 1px solid #ccc;">${f.caracteristica}</td>
+        <td style="padding: 6px; border: 1px solid #ccc;">${f.valor}</td>
+        <td style="padding: 6px; border: 1px solid #ccc;">${icono} ${f.influencia}</td>
+      </tr>`;
+  });
+  tablaHTML += `</tbody></table></div>`;
+}
+
+resultadosDiv.innerHTML += `
             <div class="result-card">
               <div class="result-title">Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</div>
               
@@ -244,6 +270,7 @@
                   : ''
               }
               ${reglasHTML}
+              ${tablaHTML}
             </div>`;
         };
 

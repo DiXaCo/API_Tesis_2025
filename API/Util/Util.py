@@ -1,3 +1,4 @@
+
 import io
 import base64
 import matplotlib
@@ -32,3 +33,17 @@ def generar_explica_lime(modelo, datos_df, used_features):
 
     img_b64 = base64.b64encode(buf.read()).decode('utf-8')
     return img_b64
+
+def construir_tabla_lime(explicacion, datos_df):
+    lista = []
+    for feature, peso in explicacion.as_list():
+        nombre = feature.split()[0].strip()
+        valor_np = datos_df[nombre].values[0] if nombre in datos_df else "?"
+        valor = valor_np.item() if hasattr(valor_np, "item") else valor_np
+        influencia = "Positiva" if peso >= 0 else "Negativa"
+        lista.append({
+            "caracteristica": feature,
+            "valor": valor,
+            "influencia": influencia
+        })
+    return lista
