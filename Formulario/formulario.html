@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Formulario de Evaluación de Licitación</title>
   <style>
     body {
@@ -48,6 +48,7 @@
       padding: 10px 15px;
       margin-bottom: 15px;
       border-left: 5px solid #3498db;
+      border-radius: 6px;
     }
     .result-title {
       font-weight: bold;
@@ -58,6 +59,63 @@
       max-width: 500px;
       margin-top: 10px;
       border: 1px solid #ddd;
+    }
+    .lime-card {
+      background-color: #fefefe;
+      border: 1px solid #ccc;
+      padding: 15px;
+      margin-top: 10px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .lime-card h4 {
+      margin-top: 0;
+      color: #2c3e50;
+    }
+    .lime-card p {
+      font-size: 0.9rem;
+      color: #555;
+    }
+    .lime-rules {
+      background-color: #f8f8f8;
+      border-left: 4px solid #8e44ad;
+      padding: 10px 15px;
+      margin-top: 15px;
+      border-radius: 6px;
+    }
+    .lime-rules h4 {
+      margin-top: 0;
+      color: #8e44ad;
+    }
+    .lime-rules ul {
+      margin: 5px 0 0 20px;
+    }
+    .lime-rules li {
+      font-family: monospace;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+    .proba-bar-container {
+      position: relative;
+      background: #e0e0e0;
+      border-radius: 6px;
+      height: 20px;
+      margin: 10px 0;
+    }
+    .proba-bar {
+      height: 100%;
+      border-radius: 6px 0 0 6px;
+      transition: width 0.5s ease;
+    }
+    .proba-label {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.85rem;
+      line-height: 20px;
+      color: #2c3e50;
+      font-weight: bold;
     }
     .summary {
       font-weight: bold;
@@ -74,100 +132,28 @@
     <div class="form-section">
       <label for="modelo">Seleccionar modelo:</label>
       <select id="modelo">
-        <option value="both">Ambos</option>
         <option value="random_forest">Random Forest</option>
         <option value="gradient_boosting">Gradient Boosting</option>
       </select>
 
-      <label>Bajo múltiples CAE:</label>
-      <select id="B_MULTIPLE_CAE_n">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Actúa en nombre de otro:</label>
-      <select id="B_ON_BEHALF_n">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Grupo CPV 45:</label>
-      <select id="GROUP_CPV_45">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Grupo CPV 33:</label>
-      <select id="GROUP_CPV_33">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Grupo CPV 15:</label>
-      <select id="GROUP_CPV_15">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Tipo de contrato (Obras):</label>
-      <select id="TYPE_OF_CONTRACT_w">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Actividad principal: Salud:</label>
-      <select id="MAIN_ACTIVITY_health">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Código país: SI:</label>
-      <select id="ISO_COUNTRY_CODE_si">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Número de adjudicaciones:</label>
-      <input type="number" id="NUMBER_AWARDS" min="0" value="0">
-
-      <label>Número de lotes:</label>
-      <input type="number" id="LOTS_NUMBER" min="0" value="0">
-
-      <label>Número de ofertas:</label>
-      <input type="number" id="NUMBER_OFFERS" min="0" value="0">
-
-      <label>Número de ofertas PYMEs:</label>
-      <input type="number" id="NUMBER_TENDERS_SME" min="0" value="0">
-
-      <label>CAE tipo 3:</label>
-      <select id="CAE_TYPE_3">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Actividad principal: Servicios públicos generales:</label>
-      <select id="MAIN_ACTIVITY_general_public_services">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>CAE tipo 4:</label>
-      <select id="CAE_TYPE_4">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>CAE tipo 5:</label>
-      <select id="CAE_TYPE_5">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
-
-      <label>Código país: LU:</label>
-      <select id="ISO_COUNTRY_CODE_lu">
-        <option value="0">No</option>
-        <option value="1">Sí</option>
-      </select>
+      <!-- Todos los campos requeridos -->
+      <label>Bajo múltiples CAE:</label><select id="B_MULTIPLE_CAE_n"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Actúa en nombre de otro:</label><select id="B_ON_BEHALF_n"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Grupo CPV 45:</label><select id="GROUP_CPV_45"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Grupo CPV 33:</label><select id="GROUP_CPV_33"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Grupo CPV 15:</label><select id="GROUP_CPV_15"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Tipo de contrato (Obras):</label><select id="TYPE_OF_CONTRACT_w"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Actividad principal: Salud:</label><select id="MAIN_ACTIVITY_health"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Código país: SI:</label><select id="ISO_COUNTRY_CODE_si"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Número de adjudicaciones:</label><input type="number" id="NUMBER_AWARDS" min="0" value="0" />
+      <label>Número de lotes:</label><input type="number" id="LOTS_NUMBER" min="0" value="0" />
+      <label>Número de ofertas:</label><input type="number" id="NUMBER_OFFERS" min="0" value="0" />
+      <label>Número de ofertas PYMEs:</label><input type="number" id="NUMBER_TENDERS_SME" min="0" value="0" />
+      <label>CAE tipo 3:</label><select id="CAE_TYPE_3"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Actividad principal: Servicios públicos generales:</label><select id="MAIN_ACTIVITY_general_public_services"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>CAE tipo 4:</label><select id="CAE_TYPE_4"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>CAE tipo 5:</label><select id="CAE_TYPE_5"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Código país: LU:</label><select id="ISO_COUNTRY_CODE_lu"><option value="0">No</option><option value="1">Sí</option></select>
 
       <button onclick="obtenerPrediccion()">Obtener predicción</button>
     </div>
@@ -192,7 +178,7 @@
       ];
       campos.forEach(id => {
         const elem = document.getElementById(id);
-        entrada[id] = elem.type === "number" ? parseInt(elem.value) : parseInt(elem.value);
+        entrada[id] = parseInt(elem.value);
       });
 
       try {
@@ -201,30 +187,81 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ modelo, entrada })
         });
+
         const data = await resp.json();
+        console.log("RESPUESTA DE API:", data);
+
         const resultadosDiv = document.getElementById("resultados");
         const resumenDiv = document.getElementById("resumen");
         resultadosDiv.innerHTML = "";
         resumenDiv.innerHTML = "";
 
         const mostrar = (nombre, resultado) => {
+          //const predTexto = resultado.prediccion == "1" ? "Adjudicada" : "No adjudicada";
+          const predTexto = resultado.prediccion;
+
+          const predColor = resultado.prediccion == "1" ? "green" : "crimson";
+          const proba = resultado.probabilidad;
+          const probaPorc = (proba * 100).toFixed(2);
+          let colorBarra = "#ccc";
+          if (proba < 0.5) colorBarra = "#e74c3c";
+          else if (proba < 0.8) colorBarra = "#f39c12";
+          else colorBarra = "#2ecc71";
+
+          let reglasHTML = "";
+          if (resultado.reglas_por_clase) {
+            reglasHTML += `<div class="lime-rules">
+              <h4>Reglas explicativas (LIME)</h4>
+              <p>Estas reglas representan el razonamiento aproximado del modelo para cada clase:</p>`;
+            for (const [clase, reglas] of Object.entries(resultado.reglas_por_clase)) {
+              reglasHTML += `<div class="reglas-clase"><strong>Clase ${clase}:</strong><ul>`;
+              reglas.forEach(regla => {
+                reglasHTML += `<li>${regla}</li>`;
+              });
+              reglasHTML += `</ul></div>`;
+            }
+            reglasHTML += `</div>`;
+          }
+
           resultadosDiv.innerHTML += `
             <div class="result-card">
               <div class="result-title">Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</div>
-              <div>Predicción: <strong>${resultado.prediccion}</strong></div>
-              <div>Probabilidad: ${(resultado.probabilidad * 100).toFixed(2)}%</div>
-              <img class="lime-image" src="data:image/png;base64,${resultado.lime}" alt="Explicación LIME" />
+              
+              
+              <div>Predicción: <span style="font-weight: bold;">${predTexto}</span></div>
+
+              <div class="proba-bar-container">
+                <div class="proba-bar" style="width: ${probaPorc}%; background-color: ${colorBarra};"></div>
+                <span class="proba-label">${probaPorc}% de certeza</span>
+              </div>
+              ${
+                resultado.explicacion_lime && resultado.explicacion_lime.trim() !== ''
+                  ? `<div class="lime-card">
+                       <h4>Explicación LIME</h4>
+                       <p>Esta imagen muestra qué características influyeron más en la predicción de este modelo.</p>
+                       <img class="lime-image" src="data:image/png;base64,${resultado.explicacion_lime}" alt="Explicación LIME" />
+                     </div>`
+                  : ''
+              }
+              ${reglasHTML}
             </div>`;
         };
 
-        if (data.random_forest) mostrar("random_forest", data.random_forest);
-        if (data.gradient_boosting) mostrar("gradient_boosting", data.gradient_boosting);
+              if (data.prediccion) {
+          const modeloNombre = document.getElementById("modelo").value;
+          mostrar(modeloNombre, data);
+        } else {
+          resumenDiv.innerHTML = "No se pudo interpretar la respuesta del modelo.";
+        }
+
         if (data.mensaje) resumenDiv.innerHTML = data.mensaje;
+
       } catch (error) {
-        console.error(error);
         alert("Error al obtener la predicción.");
+        console.error(error);
       }
     }
   </script>
 </body>
 </html>
+

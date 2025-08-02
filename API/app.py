@@ -1,101 +1,85 @@
-
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-import joblib
-import numpy as np
 import os
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning)
 import pandas as pd
-import lime
-import lime.lime_tabular
-import matplotlib.pyplot as plt
-import base64
-import uuid
+import joblib
+from Util.Util import generar_explica_lime
+from Util.reglas_lime import convert_to_if_then
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:8000"], supports_credentials=True)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODELO_PATH = os.path.join(BASE_DIR, "..", "model", "modelos_experimento_B.pkl")
-LIME_DIR = os.path.join(BASE_DIR, "..", "static", "lime")
-os.makedirs(LIME_DIR, exist_ok=True)
-
+MODELO_PATH = os.path.join(BASE_DIR, "model", "modelos_experimento_B.pkl")
 modelos = joblib.load(MODELO_PATH)
+
 used_features = modelos['random_forest'].used_features
+clases = modelos['random_forest'].classes_
 
-def obtener_resultado(modelo_nombre, modelo, datos_input):
-    X_df = pd.DataFrame([datos_input])[used_features]
-    pred = modelo.predict(X_df)[0]
-    proba = modelo.predict_proba(X_df)[0].max()
-
-    explainer = lime.lime_tabular.LimeTabularExplainer(
-        training_data=np.array(X_df),
-        feature_names=used_features,
-        class_names=modelo.classes_,
-        mode="classification",
-        discretize_continuous=True
-    )
-    exp = explainer.explain_instance(
-        X_df.iloc[0],
-        lambda x: modelo.predict_proba(pd.DataFrame(x, columns=used_features)),
-        num_features=10
-    )
-
-    unique_id = uuid.uuid4().hex[:8]
-    lime_filename = f"lime_{modelo_nombre}_{unique_id}.png"
-    lime_path = os.path.join(LIME_DIR, lime_filename)
-    fig = exp.as_pyplot_figure()
-    fig.tight_layout()
-    fig.savefig(lime_path)
-    plt.close(fig)
-
-    with open(lime_path, "rb") as image_file:
-        lime_b64 = base64.b64encode(image_file.read()).decode("utf-8")
-
-    return {
-        "modelo": modelo_nombre,
-        "prediccion": str(pred),
-        "probabilidad": round(float(proba), 4),
-        "lime": lime_b64
-    }
+@app.route("/", methods=["GET"])
+def index():
+    return render_template("formulario.html")
 
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         data = request.json
-        modelo_seleccionado = data.get("modelo")
+        modelo_nombre = data.get("modelo")
         entrada = data.get("entrada", {})
-        # Corregir clave esperada por el modelo
+
         entrada["MAIN_ACTIVITY_general public\\services"] = entrada.pop("MAIN_ACTIVITY_general_public_services", 0)
 
-        if not entrada or not modelo_seleccionado:
-            return jsonify({"error": "Faltan datos de entrada o modelo"}), 400
+        for feature in used_features:
+            if feature not in entrada:
+                entrada[feature] = 0
 
-        respuesta = {}
+        df = pd.DataFrame([entrada])[used_features]
+        modelo = modelos.get(modelo_nombre)
 
-        if modelo_seleccionado == "random_forest":
-            respuesta["random_forest"] = obtener_resultado("random_forest", modelos["random_forest"], entrada)
-
-        elif modelo_seleccionado == "gradient_boosting":
-            respuesta["gradient_boosting"] = obtener_resultado("gradient_boosting", modelos["gradient_boosting"], entrada)
-
-        elif modelo_seleccionado == "both":
-            rf_result = obtener_resultado("random_forest", modelos["random_forest"], entrada)
-            gb_result = obtener_resultado("gradient_boosting", modelos["gradient_boosting"], entrada)
-
-            respuesta["random_forest"] = rf_result
-            respuesta["gradient_boosting"] = gb_result
-            respuesta["mensaje"] = (
-                "✅ Ambos modelos coinciden." if rf_result["prediccion"] == gb_result["prediccion"]
-                else "⚠️ Los modelos difieren. Recomendamos revisar manualmente."
-            )
-        else:
+        if modelo is None:
             return jsonify({"error": "Modelo no reconocido"}), 400
 
-        return jsonify(respuesta)
+        pred = modelo.predict(df)
+        proba = modelo.predict_proba(df)[0].max()
+        lime_img = generar_explica_lime(modelo, df, used_features)
+
+        # Wrapper para que LIME pase un DataFrame a predict_proba
+        def predict_proba_wrapper(x_array):
+            df_temp = pd.DataFrame(x_array, columns=used_features)
+            return modelo.predict_proba(df_temp)
+
+        from lime.lime_tabular import LimeTabularExplainer
+        explainer = LimeTabularExplainer(
+            training_data=df.values,
+            feature_names=df.columns,
+            class_names=modelo.classes_,
+            mode='classification'
+        )
+        exp = explainer.explain_instance(
+            df.iloc[0],
+            predict_proba_wrapper,
+            num_features=len(df.columns)
+        )
+
+        reglas_texto = {}
+        for clase in exp.available_labels():
+            reglas_texto[str(clase)] = convert_to_if_then(exp, clase, pred[0])
+
+        return jsonify({
+            "prediccion": str(pred[0]),
+            "probabilidad": round(float(proba), 4),
+            "explicacion_lime": lime_img,
+            "reglas_por_clase": reglas_texto
+        })
 
     except Exception as e:
-        print("❌ Error inesperado:", e)
-        return jsonify({"error": "Error interno del servidor"}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Error interno", "mensaje": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+    
