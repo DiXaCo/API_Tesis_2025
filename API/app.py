@@ -1,26 +1,79 @@
-
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, session, redirect, url_for
 from flask_cors import CORS
 import os
 import warnings
-warnings.filterwarnings("ignore", category=FutureWarning)
+import json
 import pandas as pd
 import joblib
+from werkzeug.security import generate_password_hash, check_password_hash
+
 from Util.Util import generar_explica_lime, construir_tabla_lime
 from Util.reglas_lime import convert_to_if_then
+
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:8000"], supports_credentials=True)
 
+app.secret_key = 'clave_super_segura_para_session'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODELO_PATH = os.path.join(BASE_DIR, "model", "modelos_experimento_B.pkl")
-modelos = joblib.load(MODELO_PATH)
+USUARIOS_PATH = os.path.join(BASE_DIR, "users.json")
 
+# Cargar modelos
+modelos = joblib.load(MODELO_PATH)
 used_features = modelos['random_forest'].used_features
 clases = modelos['random_forest'].classes_
 
+# Funciones de gestión de usuarios
+def cargar_usuarios():
+    if os.path.exists(USUARIOS_PATH):
+        with open(USUARIOS_PATH, "r") as f:
+            return json.load(f)
+    return {}
+
+def guardar_usuarios(usuarios):
+    with open(USUARIOS_PATH, "w") as f:
+        json.dump(usuarios, f, indent=2)
+
+# Rutas
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = generate_password_hash(request.form["password"])
+        usuarios = cargar_usuarios()
+        if email in usuarios:
+            return "Usuario ya existe", 400
+        usuarios[email] = {"password": password}
+        guardar_usuarios(usuarios)
+        return redirect("/login?mensaje=Registro%20exitoso,%20puedes%20iniciar%20sesión")
+    return render_template("register.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    mensaje = request.args.get("mensaje")  # <- Captura mensajes opcionales
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
+        usuarios = cargar_usuarios()
+        if email in usuarios and check_password_hash(usuarios[email]["password"], password):
+            session["usuario"] = email
+            return redirect("/")
+        return "Credenciales incorrectas", 401
+    return render_template("login.html", mensaje=mensaje)
+
+
+@app.route("/logout")
+def logout():
+    session.pop("usuario", None)
+    return redirect("/login?mensaje=Sesión%20cerrada%20correctamente")
+
+
 @app.route("/", methods=["GET"])
 def index():
+    if "usuario" not in session:
+        return redirect("/login")
     return render_template("formulario.html")
 
 @app.route("/predict", methods=["POST"])

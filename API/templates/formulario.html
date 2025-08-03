@@ -289,6 +289,13 @@ resultadosDiv.innerHTML += `
       }
     }
   </script>
+  {% if session['usuario'] %}
+  <div style="position: fixed; bottom: 0; left: 0; width: 100%; background: #ecf0f1; padding: 10px; border-top: 2px solid #3498db; text-align: center; font-size: 0.9rem;">
+    Bienvenido, <strong>{{ session['usuario'] }}</strong> |
+    <a href="/logout" style="color: #c0392b; text-decoration: none;">Cerrar sesión</a>
+  </div>
+{% endif %}
+
 </body>
 </html>
 
