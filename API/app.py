@@ -123,6 +123,11 @@ def predict():
 
         tabla_lime = construir_tabla_lime(exp, df)
 
+        # Convertir valores a tipos nativos de Python
+        for fila in tabla_lime:
+            if hasattr(fila["valor"], "item"):
+                fila["valor"] = fila["valor"].item()
+
         return jsonify({
             "prediccion": str(pred[0]),
             "probabilidad": round(float(proba), 4),
@@ -130,6 +135,17 @@ def predict():
             "reglas_por_clase": reglas_texto,
             "tabla_lime": tabla_lime
         })
+
+
+
+
+
+
+
+
+
+
+
 
     except Exception as e:
         import traceback

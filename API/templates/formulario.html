@@ -21,7 +21,7 @@
       background: #fff;
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
       flex: 1;
     }
     label, select, input {
@@ -129,33 +129,96 @@
 <body>
   <h2>Formulario de Evaluación de Licitación</h2>
   <div class="container">
+
     <div class="form-section">
       <label for="modelo">Seleccionar modelo:</label>
-      <select id="modelo">
-        <option value="random_forest">Random Forest</option>
-        <option value="gradient_boosting">Gradient Boosting</option>
-      </select>
+            <select id="modelo">
+              <option value="random_forest">Random Forest</option>
+              <option value="gradient_boosting">Gradient Boosting</option>
+            </select>
 
       <!-- Todos los campos requeridos -->
-      <label>Bajo múltiples CAE:</label><select id="B_MULTIPLE_CAE_n"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Actúa en nombre de otro:</label><select id="B_ON_BEHALF_n"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Código de actividad de trabajos de demolición:</label><select id="GROUP_CPV_45"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Código de actividad de equipamiento y artículos médicos, farmacéuticos e higiene personal:</label><select id="GROUP_CPV_33"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Código de actividad de alimentos, bebidas, tabaco y productos afines:</label><select id="GROUP_CPV_15"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Tipo de contrato (Obras):</label><select id="TYPE_OF_CONTRACT_w"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Actividad principal :Salud:</label><select id="MAIN_ACTIVITY_health"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Código país: SI:</label><select id="ISO_COUNTRY_CODE_si"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Número de adjudicaciones:</label><input type="number" id="NUMBER_AWARDS" min="0" value="0" />
-      <label>Número de lotes:</label><input type="number" id="LOTS_NUMBER" min="0" value="0" />
-      <label>Número de ofertas:</label><input type="number" id="NUMBER_OFFERS" min="0" value="0" />
-      <label>Número de ofertas PYMEs:</label><input type="number" id="NUMBER_TENDERS_SME" min="0" value="0" />
-      <label>Tipo de autoridad contratante (Regional o local):</label><select id="CAE_TYPE_3"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Actividad principal: Servicios públicos generales:</label><select id="MAIN_ACTIVITY_general_public_services"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Tipo de autoridad contratante(sector de agua, energia, transporte y telecomunicaciones):</label><select id="CAE_TYPE_4"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Tipo de autoridad contratante(european Union Institution/agency):</label><select id="CAE_TYPE_5"><option value="0">No</option><option value="1">Sí</option></select>
-      <label>Código país: LU:</label><select id="ISO_COUNTRY_CODE_lu"><option value="0">No</option><option value="1">Sí</option></select>
+      <label>Múltiples entidades contratantes:</label>
+            <select name="MULTIPLE_CONTRACTING" required>
+              <option value="1">Sí</option>
+              <option value="0">No</option></select>  
+
+      <label>Actúa en nombre de otros:</label>
+            <select name="ACTING_ON_BEHALF" required>
+              <option value="1">Sí</option>
+              <option value="0">No</option>
+            </select>     
+
+      <label>Tipo de contrato (Obras):</label>
+            <select name="WORKS_CONTRACT" required>
+              <option value="1">Sí</option>
+              <option value="0">No</option>
+            </select>  
+
+
+          <div class="form-section">
+                
+                    <label>Tipo de autoridad:</label>
+                <div class="checkbox-group">
+                  <label><input type="checkbox" name="CAE_TYPE_4"> CAE_TYPE_4</label>
+                  <label><input type="checkbox" name="CAE_TYPE_5"> CAE_TYPE_5</label>
+                  <label><input type="checkbox" name="CAE_TYPE_3"> CAE_TYPE_3</label>
+                </div>
+          </div>
+      
+  
+            <div class="form-section">
+                  <label>Grupo CPV:</label>
+                <div class="checkbox-group">
+                  <label><input type="checkbox" name="GROUP_CPV_45"> GROUP_CPV_45</label>
+                  <label><input type="checkbox" name="GROUP_CPV_15"> GROUP_CPV_15</label>
+                  <label><input type="checkbox" name="GROUP_CPV_33"> GROUP_CPV_33</label>
+                </div> 
+           </div>
+          
+
+        <div class="form-section">
+          
+            <label>Actividad principal:</label>
+                <div class="checkbox-group">
+                  <label><input type="checkbox" name="MAIN_ACTIVITY_health"> Salud</label>
+                  <label><input type="checkbox" name="MAIN_ACTIVITY_general_public_services"> General servicios públicos</label>
+                </div>  
+          </div>     
+         
+
+
+        <div class="form-section">
+            <label>País:</label>
+                <div class="checkbox-group">
+                  <label><input type="checkbox" name="ISO_COUNTRY_CODE_LU"> LU</label>
+                  <label><input type="checkbox" name="ISO_COUNTRY_CODE_SI"> SI</label>
+                </div>
+        </div>
+      
+      
+      
+            <label>Número de adjudicaciones:</label>
+            <input type="number" name="NUMBER_OF_CONTRACTS" required />
+         
+
+          
+            <label>Número de lotes:</label>
+            <input type="number" name="NUMBER_OF_LOTS" required />
+          
+
+          
+            <label>Número de ofertas:</label>
+            <input type="number" name="NUMBER_OF_OFFERS" required />
+          
+          
+            <label>Número de ofertas PYMEs:</label>
+            <input type="number" name="NUMBER_OFFERS_SME" required />
+          
+
 
       <button onclick="obtenerPrediccion()">Obtener predicción</button>
+    
     </div>
 
     <div class="results-section">
@@ -166,129 +229,119 @@
   </div>
 
   <script>
-    async function obtenerPrediccion() {
-      const modelo = document.getElementById("modelo").value;
-      const entrada = {};
-      const campos = [
-        "B_MULTIPLE_CAE_n", "B_ON_BEHALF_n", "GROUP_CPV_45", "GROUP_CPV_33", "GROUP_CPV_15",
-        "TYPE_OF_CONTRACT_w", "MAIN_ACTIVITY_health", "ISO_COUNTRY_CODE_si",
-        "NUMBER_AWARDS", "LOTS_NUMBER", "NUMBER_OFFERS", "NUMBER_TENDERS_SME",
-        "CAE_TYPE_3", "MAIN_ACTIVITY_general_public_services", "CAE_TYPE_4", "CAE_TYPE_5",
-        "ISO_COUNTRY_CODE_lu"
-      ];
-      campos.forEach(id => {
-        const elem = document.getElementById(id);
-        entrada[id] = parseInt(elem.value);
+  async function obtenerPrediccion() {
+    const modelo = document.getElementById("modelo").value;
+    const entrada = {};
+
+    const seccion = document.querySelector(".form-section");
+
+    // Checkboxes (devuelven 1 si están marcados, 0 si no)
+    seccion.querySelectorAll("input[type='checkbox']").forEach(cb => {
+      entrada[cb.name] = cb.checked ? 1 : 0;
+    });
+
+    // Selects y números (conversión automática a número si es posible)
+    seccion.querySelectorAll("select, input[type='number']").forEach(el => {
+      const nombre = el.name;
+      const valor = el.value;
+      entrada[nombre] = isNaN(valor) ? valor : Number(valor);
+    });
+
+    try {
+      const resp = await fetch("http://localhost:5000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",  // Importante si tu API usa sesión con cookies
+        body: JSON.stringify({ modelo, entrada })
       });
 
-      try {
-        const resp = await fetch("http://localhost:5000/predict", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ modelo, entrada })
-        });
+      const data = await resp.json();
+      console.log("Respuesta del backend:", data);
+      const resultadosDiv = document.getElementById("resultados");
+      const resumenDiv = document.getElementById("resumen");
+      resultadosDiv.innerHTML = "";
+      resumenDiv.innerHTML = "";
 
-        const data = await resp.json();
-        console.log("RESPUESTA DE API:", data);
+      const mostrar = (nombre, resultado) => {
+        const predTexto = resultado.prediccion;
+        const proba = resultado.probabilidad;
+        const probaPorc = (proba * 100).toFixed(2);
+        let colorBarra = "#ccc";
+        if (proba < 0.5) colorBarra = "#e74c3c";
+        else if (proba < 0.8) colorBarra = "#f39c12";
+        else colorBarra = "#2ecc71";
 
-        const resultadosDiv = document.getElementById("resultados");
-        const resumenDiv = document.getElementById("resumen");
-        resultadosDiv.innerHTML = "";
-        resumenDiv.innerHTML = "";
-
-        const mostrar = (nombre, resultado) => {
-          //const predTexto = resultado.prediccion == "1" ? "Adjudicada" : "No adjudicada";
-          const predTexto = resultado.prediccion;
-
-          const predColor = resultado.prediccion == "1" ? "green" : "crimson";
-          const proba = resultado.probabilidad;
-          const probaPorc = (proba * 100).toFixed(2);
-          let colorBarra = "#ccc";
-          if (proba < 0.5) colorBarra = "#e74c3c";
-          else if (proba < 0.8) colorBarra = "#f39c12";
-          else colorBarra = "#2ecc71";
-
-          let reglasHTML = "";
-          if (resultado.reglas_por_clase) {
-            reglasHTML += `<div class="lime-rules">
-              <h4>Reglas explicativas (LIME)</h4>
-              <p>Estas reglas representan el razonamiento aproximado del modelo para cada clase:</p>`;
-            for (const [clase, reglas] of Object.entries(resultado.reglas_por_clase)) {
-              reglasHTML += `<div class="reglas-clase"><strong>Clase ${clase}:</strong><ul>`;
-              reglas.forEach(regla => {
-                reglasHTML += `<li>${regla}</li>`;
-              });
-              reglasHTML += `</ul></div>`;
-            }
-            reglasHTML += `</div>`;
+        let reglasHTML = "";
+        if (resultado.reglas_por_clase) {
+          reglasHTML += `<div class="lime-rules">
+            <h4>Reglas explicativas (LIME)</h4>
+            <p>Estas reglas representan el razonamiento aproximado del modelo:</p>`;
+          for (const [clase, reglas] of Object.entries(resultado.reglas_por_clase)) {
+            reglasHTML += `<div><strong>Clase ${clase}:</strong><ul>`;
+            reglas.forEach(r => reglasHTML += `<li>${r}</li>`);
+            reglasHTML += `</ul></div>`;
           }
-
-          let tablaHTML = "";
-if (resultado.tabla_lime) {
-  tablaHTML += `
-    <div class="lime-rules" style="margin-top: 15px;">
-      <h4>Resumen de características más influyentes</h4>
-      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
-        <thead>
-          <tr style="background-color: #f0f0f0;">
-            <th style="padding: 6px; border: 1px solid #ccc;">Característica</th>
-            <th style="padding: 6px; border: 1px solid #ccc;">Valor</th>
-            <th style="padding: 6px; border: 1px solid #ccc;">Influencia</th>
-          </tr>
-        </thead>
-        <tbody>`;
-  resultado.tabla_lime.forEach(f => {
-    const icono = f.influencia === "Positiva" ? "🔥" : "🔻";
-    tablaHTML += `
-      <tr>
-        <td style="padding: 6px; border: 1px solid #ccc;">${f.caracteristica}</td>
-        <td style="padding: 6px; border: 1px solid #ccc;">${f.valor}</td>
-        <td style="padding: 6px; border: 1px solid #ccc;">${icono} ${f.influencia}</td>
-      </tr>`;
-  });
-  tablaHTML += `</tbody></table></div>`;
-}
-
-resultadosDiv.innerHTML += `
-            <div class="result-card">
-              <div class="result-title">Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</div>
-              
-              
-              <div>Predicción: <span style="font-weight: bold;">${predTexto}</span></div>
-
-              <div class="proba-bar-container">
-                <div class="proba-bar" style="width: ${probaPorc}%; background-color: ${colorBarra};"></div>
-                <span class="proba-label">${probaPorc}% de certeza</span>
-              </div>
-              ${
-                resultado.explicacion_lime && resultado.explicacion_lime.trim() !== ''
-                  ? `<div class="lime-card">
-                       <h4>Explicación LIME</h4>
-                       <p>Esta imagen muestra qué características influyeron más en la predicción de este modelo.</p>
-                       <img class="lime-image" src="data:image/png;base64,${resultado.explicacion_lime}" alt="Explicación LIME" />
-                     </div>`
-                  : ''
-              }
-              ${reglasHTML}
-              ${tablaHTML}
-            </div>`;
-        };
-
-              if (data.prediccion) {
-          const modeloNombre = document.getElementById("modelo").value;
-          mostrar(modeloNombre, data);
-        } else {
-          resumenDiv.innerHTML = "No se pudo interpretar la respuesta del modelo.";
+          reglasHTML += `</div>`;
         }
 
-        if (data.mensaje) resumenDiv.innerHTML = data.mensaje;
+        let tablaHTML = "";
+        if (resultado.tabla_lime) {
+          tablaHTML += `
+            <div class="lime-rules" style="margin-top: 15px;">
+              <h4>Resumen de características más influyentes</h4>
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr>
+                    <th style="border:1px solid #ccc; padding:6px;">Característica</th>
+                    <th style="border:1px solid #ccc; padding:6px;">Valor</th>
+                    <th style="border:1px solid #ccc; padding:6px;">Influencia</th>
+                  </tr>
+                </thead><tbody>`;
+          resultado.tabla_lime.forEach(f => {
+            const icono = f.influencia === "Positiva" ? "🔥" : "🔻";
+            tablaHTML += `
+              <tr>
+                <td style="border:1px solid #ccc; padding:6px;">${f.caracteristica}</td>
+                <td style="border:1px solid #ccc; padding:6px;">${f.valor}</td>
+                <td style="border:1px solid #ccc; padding:6px;">${icono} ${f.influencia}</td>
+              </tr>`;
+          });
+          tablaHTML += `</tbody></table></div>`;
+        }
 
-      } catch (error) {
-        alert("Error al obtener la predicción.");
-        console.error(error);
+        resultadosDiv.innerHTML += `
+          <div class="result-card">
+            <h4>Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</h4>
+            <p>Predicción: <strong>${predTexto}</strong></p>
+            <div class="proba-bar-container">
+              <div class="proba-bar" style="width: ${probaPorc}%; background-color: ${colorBarra}; height: 10px;"></div>
+              <span class="proba-label">${probaPorc}% de certeza</span>
+            </div>
+            ${resultado.explicacion_lime ? `
+              <div class="lime-card">
+                <h4>Explicación LIME</h4>
+                <img src="data:image/png;base64,${resultado.explicacion_lime}" style="max-width:100%;" />
+              </div>` : ''}
+            ${reglasHTML}
+            ${tablaHTML}
+          </div>`;
+      };
+
+      if (data.prediccion) {
+        mostrar(modelo, data);
+      } else {
+        resumenDiv.innerHTML = "No se pudo interpretar la respuesta del modelo.";
       }
+
+      if (data.mensaje) resumenDiv.innerHTML = data.mensaje;
+
+    } catch (error) {
+      alert("Error al obtener la predicción.");
+      console.error(error);
     }
+  }
   </script>
+
   {% if session['usuario'] %}
   <div style="position: fixed; bottom: 0; left: 0; width: 100%; background: #ecf0f1; padding: 10px; border-top: 2px solid #3498db; text-align: center; font-size: 0.9rem;">
     Bienvenido, <strong>{{ session['usuario'] }}</strong> |
@@ -298,4 +351,3 @@ resultadosDiv.innerHTML += `
 
 </body>
 </html>
-
