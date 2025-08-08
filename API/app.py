@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, session, redirect, url_for
+from flask import Flask, request, jsonify, render_template, session, redirect
 from flask_cors import CORS
 import os
 import warnings
@@ -6,8 +6,11 @@ import json
 import pandas as pd
 import joblib
 from werkzeug.security import generate_password_hash, check_password_hash
-
-from Util.Util import generar_explica_lime, construir_tabla_lime
+import matplotlib.pyplot as plt
+import io
+import base64
+import re
+from Util.Util import plot_lime_custom, construir_tabla_lime, plot_probabilidades_clases
 from Util.reglas_lime import convert_to_if_then
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -25,6 +28,38 @@ modelos = joblib.load(MODELO_PATH)
 used_features = modelos['random_forest'].used_features
 clases = modelos['random_forest'].classes_
 
+
+# Traducción de clase a duración en meses (según ANNEX II)
+DURACION_ESTIMADA_POR_CLASE = {
+    "short": 3.0,    # ajusta según las clases reales de tu modelo
+    "medium": 12.0,
+    "long": 36.0
+}
+
+
+# Mapeo completo de nombres frontend a backend
+CAMPO_MAPEO_COMPLETO = {
+    "MULTIPLE_CONTRACTING": "B_MULTIPLE_CAE_n",
+    "ACTING_ON_BEHALF": "B_ON_BEHALF_n",
+    "WORKS_CONTRACT": "TYPE_OF_CONTRACT_w",
+    "ISO_COUNTRY_CODE_SI": "ISO_COUNTRY_CODE_si",
+    "ISO_COUNTRY_CODE_LU": "ISO_COUNTRY_CODE_lu",
+    "NUMBER_OF_CONTRACTS": "NUMBER_AWARDS",
+    "NUMBER_OF_LOTS": "LOTS_NUMBER",
+    "NUMBER_OF_OFFERS": "NUMBER_OFFERS",
+    "NUMBER_OFFERS_SME": "NUMBER_TENDERS_SME",
+    "MAIN_ACTIVITY_health": "MAIN_ACTIVITY_health",
+    "MAIN_ACTIVITY_general_public_services": "MAIN_ACTIVITY_general_public_services",
+    "CAE_TYPE_3": "CAE_TYPE_3",
+    "CAE_TYPE_4": "CAE_TYPE_4",
+    "CAE_TYPE_5": "CAE_TYPE_5",
+    "GROUP_CPV_15": "GROUP_CPV_15",
+    "GROUP_CPV_33": "GROUP_CPV_33",
+    "GROUP_CPV_45": "GROUP_CPV_45",
+}
+
+
+
 # Funciones de gestión de usuarios
 def cargar_usuarios():
     if os.path.exists(USUARIOS_PATH):
@@ -36,7 +71,31 @@ def guardar_usuarios(usuarios):
     with open(USUARIOS_PATH, "w") as f:
         json.dump(usuarios, f, indent=2)
 
-# Rutas
+
+
+# --------------------------------------------
+# FUNCION para traducir etiquetas a formato legible
+def interpretar_etiqueta_duracion(etiqueta):
+    """
+    Convierte una etiqueta como '(-0.2, 67.611]' en 'Duración estimada entre 0.2 y 67.6 meses'
+    """
+    try:
+        if etiqueta.startswith("(") or etiqueta.startswith("["):
+            etiqueta = etiqueta.replace("(", "").replace("]", "")
+            partes = etiqueta.split(",")
+            if len(partes) == 2:
+                inicio = round(float(partes[0]), 1)
+                fin = round(float(partes[1]), 1)
+                return f"Duración estimada entre {inicio} y {fin} meses"
+        elif etiqueta.replace(".", "").isnumeric():
+            return f"Duración estimada: {round(float(etiqueta), 1)} meses"
+        else:
+            return f"Duración estimada: {etiqueta}"
+    except:
+        return "Duración estimada desconocida"
+
+
+# Rutas para registro/login/logout/index
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
@@ -52,7 +111,7 @@ def register():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    mensaje = request.args.get("mensaje")  # <- Captura mensajes opcionales
+    mensaje = request.args.get("mensaje")
     if request.method == "POST":
         email = request.form["email"]
         password = request.form["password"]
@@ -63,12 +122,10 @@ def login():
         return "Credenciales incorrectas", 401
     return render_template("login.html", mensaje=mensaje)
 
-
 @app.route("/logout")
 def logout():
     session.pop("usuario", None)
     return redirect("/login?mensaje=Sesión%20cerrada%20correctamente")
-
 
 @app.route("/", methods=["GET"])
 def index():
@@ -76,30 +133,72 @@ def index():
         return redirect("/login")
     return render_template("formulario.html")
 
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
         data = request.json
         modelo_nombre = data.get("modelo")
-        entrada = data.get("entrada", {})
+        entrada_raw = data.get("entrada", {})
 
-        entrada["MAIN_ACTIVITY_general public\services"] = entrada.pop("MAIN_ACTIVITY_general_public_services", 0)
+        print("📥 Entrada cruda desde el frontend:")
+        print(json.dumps(entrada_raw, indent=2))
 
-        for feature in used_features:
-            if feature not in entrada:
-                entrada[feature] = 0
+        # Mapear nombres frontend -> backend
+        entrada_mapeada = {}
+        for clave_frontend, valor in entrada_raw.items():
+            clave_backend = CAMPO_MAPEO_COMPLETO.get(clave_frontend, clave_frontend)
+            entrada_mapeada[clave_backend] = valor
 
-        df = pd.DataFrame([entrada])[used_features]
+        print("\n🔁 Entrada mapeada a nombres del modelo:")
+        print(json.dumps(entrada_mapeada, indent=2))
+
+        # Completar con 0 campos faltantes
+        for campo in used_features:
+            if campo not in entrada_mapeada:
+                print(f"⚠️ Campo faltante detectado: {campo}, se establece en 0")
+                entrada_mapeada[campo] = 0
+
+        # Mostrar todos los campos finales
+        print("\n✅ Entrada final completa (lista para el modelo):")
+        print(json.dumps(entrada_mapeada, indent=2))
+
+        # Validar campos requeridos
+        faltantes = [f for f in used_features if f not in entrada_mapeada]
+        if faltantes:
+            print(f"❌ Faltan campos requeridos: {faltantes}")
+            return jsonify({
+                "error": "Faltan campos requeridos para la predicción.",
+                "campos_faltantes": faltantes
+            }), 400
+
+        # Crear dataframe
+        df = pd.DataFrame([entrada_mapeada])[used_features]
+
         modelo = modelos.get(modelo_nombre)
-
         if modelo is None:
             return jsonify({"error": "Modelo no reconocido"}), 400
 
+        # Predicción
         pred = modelo.predict(df)
-        proba = modelo.predict_proba(df)[0].max()
-        lime_img = generar_explica_lime(modelo, df, used_features)
+        probas = modelo.predict_proba(df)[0]
 
+        indice_pred = list(modelo.classes_).index(pred[0])
+        proba = probas[indice_pred]
+
+
+        # Interpretar etiqueta como duración legible
+        etiqueta = str(pred[0])
+        mensaje_duracion = interpretar_etiqueta_duracion(etiqueta)
+
+
+
+        print(f"\n🔮 Predicción: {pred[0]}, Probabilidad: {proba:.4f}")
+
+        # LIME
         from lime.lime_tabular import LimeTabularExplainer
+
         def predict_proba_wrapper(x_array):
             df_temp = pd.DataFrame(x_array, columns=used_features)
             return modelo.predict_proba(df_temp)
@@ -117,40 +216,72 @@ def predict():
             num_features=len(df.columns)
         )
 
+        img_probas_base64 = plot_probabilidades_clases(probas, modelo.classes_)
+
         reglas_texto = {}
         for clase in exp.available_labels():
             reglas_texto[str(clase)] = convert_to_if_then(exp, clase, pred[0])
 
         tabla_lime = construir_tabla_lime(exp, df)
-
-        # Convertir valores a tipos nativos de Python
         for fila in tabla_lime:
             if hasattr(fila["valor"], "item"):
                 fila["valor"] = fila["valor"].item()
 
+        print("\n📊 Tabla LIME generada:")
+        for fila in tabla_lime:
+            print(fila)
+
+     #   return jsonify({
+      #      "prediccion": str(pred[0]),
+       #     "probabilidad": round(float(proba), 4),
+        #    "grafico_probabilidades_base64": img_probas_base64,
+         #   "reglas_por_clase": reglas_texto,
+          #  "tabla_lime": tabla_lime
+        #})
+    
+
+       
+
+        etiqueta = str(pred[0])
+        try:
+            # Buscar números dentro del intervalo, como en (-0.2, 67.611]
+            numeros = re.findall(r"[-+]?\d*\.\d+|\d+", etiqueta)
+            if len(numeros) == 2:
+                inicio = round(float(numeros[0]), 1)
+                fin = round(float(numeros[1]), 1)
+                mensaje_duracion = f"Duración estimada entre {inicio} y {fin} meses"
+            else:
+                # Si no es un intervalo, tratar de convertir directamente
+                duracion = round(float(etiqueta), 1)
+                mensaje_duracion = f"Duración estimada de {duracion} meses"
+        except:
+            mensaje_duracion = "Duración estimada desconocida"
+
+        mensaje_explicativo = f"Según el análisis de las características ingresadas, se estima que la duración del contrato será de {mensaje_duracion}. Esta recomendación considera factores como el tipo de contrato, número de ofertas, y la actividad principal de la autoridad contratante."
+
+       # Mensaje explicativo con rango
+        mensaje_explicativo = (
+            f"Según el análisis de las características ingresadas, se estima que la duración del contrato será de "
+            f"{mensaje_duracion}. Esta recomendación considera factores como el tipo de contrato, número de ofertas, "
+            f"y la actividad principal de la autoridad contratante."
+        )
+
         return jsonify({
-            "prediccion": str(pred[0]),
-            "probabilidad": round(float(proba), 4),
-            "explicacion_lime": lime_img,
-            "reglas_por_clase": reglas_texto,
-            "tabla_lime": tabla_lime
-        })
-
-
-
-
-
-
-
-
-
-
+    "prediccion": str(pred[0]),
+    "probabilidad": round(float(proba), 4),
+    "grafico_probabilidades_base64": img_probas_base64,
+    "reglas_por_clase": reglas_texto,
+    "tabla_lime": tabla_lime,
+    "duracion_meses_aproximada": mensaje_duracion,
+    "mensaje_explicativo": mensaje_explicativo
+})
 
 
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Error interno", "mensaje": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)

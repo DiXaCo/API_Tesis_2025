@@ -1,45 +1,22 @@
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import io
 import base64
-import matplotlib.pyplot as plt
-import pandas as pd
-from lime.lime_tabular import LimeTabularExplainer
 
-def generar_explica_lime(modelo, df, used_features):
-    """
-    Genera una imagen LIME estilo clásico con barras horizontales por clase (como LIME_RF.png y LIME_GB.png).
-    Retorna una imagen PNG en base64 para incrustar en HTML.
-    """
-    # Crear el explicador
-    explainer = LimeTabularExplainer(
-        training_data=df.values,
-        feature_names=used_features,
-        class_names=modelo.classes_,
-        mode='classification'
-    )
+def plot_lime_custom(exp, num_features=10):
+    features = exp.as_list(label=exp.available_labels()[0])[:num_features]
+    nombres = [f[0] for f in features]
+    impactos = [f[1] for f in features]
 
-    # Función de predicción para LIME
-    def predict_fn(x_array):
-        df_temp = pd.DataFrame(x_array, columns=used_features)
-        return modelo.predict_proba(df_temp)
+    colores = ['green' if val > 0 else 'red' for val in impactos]
 
-    # Generar explicación
-    exp = explainer.explain_instance(
-        df.iloc[0].values,
-        predict_fn,
-        num_features=len(used_features)
-    )
-
-    # 🔥 Aquí generamos el gráfico de LIME tipo barras horizontales por clase
-    fig = exp.as_pyplot_figure()
-
-    # Convertir a imagen base64
-    buf = io.BytesIO()
-    fig.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    lime_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    plt.close(fig)
-
-    return lime_base64
+    plt.figure(figsize=(5,6))
+    plt.barh(nombres[::-1], impactos[::-1], color=colores[::-1])
+    plt.title("Explicación LIME - Impacto características")
+    plt.xlabel("Impacto en la predicción")
+    plt.tight_layout()
+    plt.show()
 
 
 def construir_tabla_lime(exp, df):
@@ -80,3 +57,25 @@ def construir_tabla_lime(exp, df):
         })
 
     return tabla
+
+def plot_probabilidades_clases(probas, clases):
+
+    plt.figure(figsize=(8,5))
+    colores = ['blue' if c != 'predicho' else 'green' for c in clases] 
+
+    plt.barh(clases, probas, color='skyblue')
+    plt.xlabel("Probabilidad")
+    plt.title("Probabilidades por clase")
+    plt.xlim(0, 1)
+
+    for i, v in enumerate(probas):
+        plt.text(v + 0.01, i, f"{v:.2f}", color='black', va='center')
+
+    plt.tight_layout()
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    plt.close()
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+    return img_base64
