@@ -173,7 +173,7 @@ def predict():
                 "campos_faltantes": faltantes
             }), 400
 
-        # Crear dataframe
+        # Crear dataframe para modelo
         df = pd.DataFrame([entrada_mapeada])[used_features]
 
         modelo = modelos.get(modelo_nombre)
