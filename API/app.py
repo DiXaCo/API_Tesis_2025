@@ -18,6 +18,7 @@ from Util.reglas_lime import convert_to_if_then
 def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None):
     """Convierte intervalo de predicción en sugerencias prácticas de duración"""
     import re
+    import numpy as np
     
     # DEBUG: Ver qué estamos recibiendo
     print(f"🔍 DEBUG: prediccion_intervalo = '{prediccion_intervalo}'")
@@ -80,10 +81,10 @@ def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None)
                 }
             }
             
-            # Añadir equivalencias en diferentes unidades
+            # Añadir equivalencias en diferentes unidades (usando 30.4 días/mes como en tu metodología)
             for alt in sugerencias["alternativas"]:
                 alt["equivalencias"] = {
-                    "dias": round(alt["valor"] * 30.44),
+                    "dias": round(alt["valor"] * 30.4),  # Usar 30.4 como en tu cálculo de duración
                     "años": round(alt["valor"] / 12, 1)
                 }
             
@@ -110,16 +111,48 @@ def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None)
                 
             sugerencias["recomendaciones_contractuales"] = recomendaciones
             
-            # Añadir nivel de confianza
-            if probabilidades:
-                max_prob = max(probabilidades)
+            # 🔧 CORRECCIÓN DEL ERROR NUMPY:
+            # Verificar probabilidades de forma segura para arrays NumPy
+            if probabilidades is not None and hasattr(probabilidades, '__len__') and len(probabilidades) > 0:
+                try:
+                    print(f"🔍 DEBUG: Procesando probabilidades...")
+                    
+                    # Convertir a lista Python si es array NumPy para evitar ambigüedad
+                    if hasattr(probabilidades, 'tolist'):
+                        probs_list = probabilidades.tolist()
+                        print(f"🔍 DEBUG: Convertido a lista: {probs_list}")
+                    else:
+                        probs_list = list(probabilidades)
+                    
+                    # Ahora sí podemos usar max() sin problemas
+                    max_prob = max(probs_list)
+                    print(f"🔍 DEBUG: max_prob calculada = {max_prob}")
+                    
+                    sugerencias["confianza"] = {
+                        "nivel": "Alta" if max_prob > 0.7 else "Media" if max_prob > 0.4 else "Baja",
+                        "porcentaje": f"{max_prob:.1%}",
+                        "interpretacion": "Predicción confiable" if max_prob > 0.6 else "Considerar análisis adicional"
+                    }
+                    print(f"🔍 DEBUG: Confianza calculada: {sugerencias['confianza']}")
+                    
+                except Exception as prob_error:
+                    print(f"⚠️ Error procesando probabilidades: {prob_error}")
+                    # Fallback para confianza
+                    sugerencias["confianza"] = {
+                        "nivel": "Media",
+                        "porcentaje": "N/A",
+                        "interpretacion": "Error calculando confianza"
+                    }
+            else:
+                print("⚠️ No se proporcionaron probabilidades válidas")
                 sugerencias["confianza"] = {
-                    "nivel": "Alta" if max_prob > 0.7 else "Media" if max_prob > 0.4 else "Baja",
-                    "porcentaje": f"{max_prob:.1%}",
-                    "interpretacion": "Predicción confiable" if max_prob > 0.6 else "Considerar análisis adicional"
+                    "nivel": "Media",
+                    "porcentaje": "N/A", 
+                    "interpretacion": "Probabilidades no disponibles"
                 }
             
             print(f"🔍 DEBUG: Retornando sugerencias calculadas correctamente")
+            print(f"🔍 DEBUG: Valor recomendado final = {sugerencias['opcion_recomendada']['valor']} meses")
             return sugerencias
             
         else:
@@ -279,6 +312,11 @@ def predict():
         modelo_nombre = data.get("modelo")
         entrada_raw = data.get("entrada", {})
 
+        # 🔧 Remover llave vacía si llega desde el frontend
+        if "" in entrada_raw:
+            print("⚠️ Removiendo llave vacía del payload de entrada")
+            entrada_raw.pop("")
+
         print("📥 Entrada cruda desde el frontend:")
         print(json.dumps(entrada_raw, indent=2))
 
@@ -291,8 +329,18 @@ def predict():
         print("\n🔁 Entrada mapeada a nombres del modelo:")
         print(json.dumps(entrada_mapeada, indent=2))
 
+        # ======= SELECCIÓN DEL MODELO Y SUS FEATURES =======
+        modelo = modelos.get(modelo_nombre)
+        if modelo is None:
+            return jsonify({"error": "Modelo no reconocido"}), 400
+
+        used_features_modelo = getattr(modelo, "used_features", None)
+        if not used_features_modelo:
+            used_features_modelo = used_features
+        # ====================================================
+
         # Completar con 0 campos faltantes
-        for campo in used_features:
+        for campo in used_features_modelo:
             if campo not in entrada_mapeada:
                 print(f"⚠️ Campo faltante detectado: {campo}, se establece en 0")
                 entrada_mapeada[campo] = 0
@@ -301,43 +349,25 @@ def predict():
         print("\n✅ Entrada final completa (lista para el modelo):")
         print(json.dumps(entrada_mapeada, indent=2))
 
-        # Validar campos requeridos
-        faltantes = [f for f in used_features if f not in entrada_mapeada]
-        if faltantes:
-            print(f"❌ Faltan campos requeridos: {faltantes}")
-            return jsonify({
-                "error": "Faltan campos requeridos para la predicción.",
-                "campos_faltantes": faltantes
-            }), 400
-
-        # Crear dataframe para modelo
-        df = pd.DataFrame([entrada_mapeada])[used_features]
-
-        modelo = modelos.get(modelo_nombre)
-        if modelo is None:
-            return jsonify({"error": "Modelo no reconocido"}), 400
+        # Crear dataframe con el orden correcto para el modelo
+        df = pd.DataFrame([entrada_mapeada])[used_features_modelo]
 
         # Predicción
         pred = modelo.predict(df)
         probas = modelo.predict_proba(df)[0]
-
         indice_pred = list(modelo.classes_).index(pred[0])
         proba = probas[indice_pred]
 
-
-        # Interpretar etiqueta como duración legible
         etiqueta = str(pred[0])
         mensaje_duracion = interpretar_etiqueta_duracion(etiqueta)
 
-
-
         print(f"\n🔮 Predicción: {pred[0]}, Probabilidad: {proba:.4f}")
 
-        # LIME
+        # =================== LIME ===================
         from lime.lime_tabular import LimeTabularExplainer
 
         def predict_proba_wrapper(x_array):
-            df_temp = pd.DataFrame(x_array, columns=used_features)
+            df_temp = pd.DataFrame(x_array, columns=used_features_modelo)
             return modelo.predict_proba(df_temp)
 
         explainer = LimeTabularExplainer(
@@ -352,6 +382,7 @@ def predict():
             predict_proba_wrapper,
             num_features=len(df.columns)
         )
+        # ==============================================
 
         img_probas_base64 = plot_probabilidades_clases(probas, modelo.classes_)
 
@@ -368,48 +399,27 @@ def predict():
         for fila in tabla_lime:
             print(fila)
 
-     #   return jsonify({
-      #      "prediccion": str(pred[0]),
-       #     "probabilidad": round(float(proba), 4),
-        #    "grafico_probabilidades_base64": img_probas_base64,
-         #   "reglas_por_clase": reglas_texto,
-          #  "tabla_lime": tabla_lime
-        #})
-    
-
-       
-
+        # Procesar etiqueta como rango o valor numérico
         etiqueta = str(pred[0])
         try:
-            # Buscar números dentro del intervalo, como en (-0.2, 67.611]
             numeros = re.findall(r"[-+]?\d*\.\d+|\d+", etiqueta)
             if len(numeros) == 2:
                 inicio = round(float(numeros[0]), 1)
                 fin = round(float(numeros[1]), 1)
                 mensaje_duracion = f"Duración estimada entre {inicio} y {fin} meses"
             else:
-                # Si no es un intervalo, tratar de convertir directamente
                 duracion = round(float(etiqueta), 1)
                 mensaje_duracion = f"Duración estimada de {duracion} meses"
         except:
             mensaje_duracion = "Duración estimada desconocida"
 
-        mensaje_explicativo = f"Según el análisis de las características ingresadas, se estima que la duración del contrato será de {mensaje_duracion}. Esta recomendación considera factores como el tipo de contrato, número de ofertas, y la actividad principal de la autoridad contratante."
-
-       # Mensaje explicativo con rango
         mensaje_explicativo = (
             f"Según el análisis de las características ingresadas, se estima que la duración del contrato será de "
             f"{mensaje_duracion}. Esta recomendación considera factores como el tipo de contrato, número de ofertas, "
             f"y la actividad principal de la autoridad contratante."
         )
-#-----------------------------------------------------------------------
-        # Justo antes de llamar generar_sugerencia_group_duration
-        print(f"🔍 DEBUG MAIN: pred[0] = '{pred[0]}', type = {type(pred[0])}")
-        sugerencias_duracion = generar_sugerencia_group_duration(str(pred[0]), probas)
-                    
-        sugerencias_duracion = generar_sugerencia_group_duration(str(pred[0]), probas)
-#-------------------------------------------------------------------------
 
+        sugerencias_duracion = generar_sugerencia_group_duration(str(pred[0]), probas)
 
         return jsonify({
             "prediccion": str(pred[0]),
@@ -419,20 +429,21 @@ def predict():
             "tabla_lime": tabla_lime,
             "duracion_meses_aproximada": mensaje_duracion,
             "mensaje_explicativo": mensaje_explicativo,
-
-            #------------------------------------
             "sugerencias_duracion": sugerencias_duracion,
             "sugerencia_principal": {
-            "valor_meses": sugerencias_duracion["opcion_recomendada"]["valor"],
-            "descripcion": sugerencias_duracion["opcion_recomendada"]["descripcion"]}
-
-         })
-
+                "valor_meses": sugerencias_duracion["opcion_recomendada"]["valor"],
+                "descripcion": sugerencias_duracion["opcion_recomendada"]["descripcion"]
+            }
+        })
 
     except Exception as e:
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Error interno", "mensaje": str(e)}), 500
+
+#---------------------------------------------------------------------
+       
+#-------------------------------------------------------------------
 
 
 if __name__ == "__main__":
