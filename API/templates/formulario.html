@@ -25,26 +25,24 @@
       flex: 1 1 400px;
       min-width: 320px;
     }
-    /* Mantener bloque y ancho completo solo para inputs que NO sean checkbox */
-      label, select, input:not([type="checkbox"]) {
-        display: block;
-        width: 100%;
-        margin-top: 10px;
-        
-      }
+    
+    label, select, input:not([type="checkbox"]) {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+    }
 
-     
-      .checkbox-group label {
-        display: flex;
-        align-items: center;
-        gap: 6px; 
-        width: auto; 
-        margin-top: 5px;
-      }
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px; 
+      width: auto; 
+      margin-top: 5px;
+    }
 
-      .checkbox-group input[type="checkbox"] {
-        width: auto; 
-      }
+    .checkbox-group input[type="checkbox"] {
+      width: auto; 
+    }
 
     select, input {
       padding: 8px;
@@ -52,6 +50,7 @@
       border-radius: 4px;
       font-size: 1rem;
     }
+    
     button {
       margin-top: 15px;
       padding: 10px 20px;
@@ -63,26 +62,114 @@
       font-size: 1rem;
       transition: background-color 0.3s ease;
     }
+    
     button:hover {
       background-color: #1f5a86;
     }
+    
     .result-card {
       background: #ecf0f1;
-      padding: 10px 15px;
+      padding: 15px;
       margin-bottom: 15px;
       border-left: 5px solid #3498db;
       border-radius: 6px;
     }
+    
     .result-title {
       font-weight: bold;
       margin-bottom: 5px;
     }
+    
+    /* ⭐ NUEVOS ESTILOS PARA SUGERENCIAS DE DURACIÓN */
+    .duration-suggestion {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .duration-main {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+    
+    .duration-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin: 10px 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .duration-alternatives {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .duration-option {
+      background: rgba(255,255,255,0.2);
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    .duration-option.recommended {
+      border-color: #f1c40f;
+      background: rgba(241, 196, 15, 0.3);
+    }
+    
+    .duration-option:hover {
+      background: rgba(255,255,255,0.3);
+      transform: translateY(-2px);
+    }
+    
+    .confidence-indicator {
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border-left: 5px solid #2ecc71;
+    }
+    
+    .confidence-high { border-left-color: #2ecc71; }
+    .confidence-medium { border-left-color: #f39c12; }
+    .confidence-low { border-left-color: #e74c3c; }
+    
+    .recommendations {
+      background: #fff8e1;
+      border: 1px solid #ffc107;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .recommendations h4 {
+      color: #f57c00;
+      margin-top: 0;
+    }
+    
+    .recommendations ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .recommendations li {
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    
     .lime-image {
       width: 100%;
       max-width: 500px;
       margin-top: 10px;
       border: 1px solid #ddd;
     }
+    
     .lime-card {
       background-color: #fefefe;
       border: 1px solid #ccc;
@@ -91,14 +178,17 @@
       border-radius: 6px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
+    
     .lime-card h4 {
       margin-top: 0;
       color: #2c3e50;
     }
+    
     .lime-card p {
       font-size: 0.9rem;
       color: #555;
     }
+    
     .lime-rules {
       background-color: #f8f8f8;
       border-left: 4px solid #8e44ad;
@@ -106,40 +196,22 @@
       margin-top: 15px;
       border-radius: 6px;
     }
+    
     .lime-rules h4 {
       margin-top: 0;
       color: #8e44ad;
     }
+    
     .lime-rules ul {
       margin: 5px 0 0 20px;
     }
+    
     .lime-rules li {
       font-family: monospace;
       font-size: 0.9rem;
       margin-bottom: 4px;
     }
-    .proba-bar-container {
-      position: relative;
-      background: #e0e0e0;
-      border-radius: 6px;
-      height: 20px;
-      margin: 10px 0;
-    }
-    .proba-bar {
-      height: 100%;
-      border-radius: 6px 0 0 6px;
-      transition: width 0.5s ease;
-    }
-    .proba-label {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 0.85rem;
-      line-height: 20px;
-      color: #2c3e50;
-      font-weight: bold;
-    }
+    
     .summary {
       font-weight: bold;
       padding: 10px;
@@ -149,6 +221,7 @@
       min-height: 30px;
       white-space: pre-wrap;
     }
+    
     .summary.error {
       background-color: #fdd;
       border-left-color: #d33;
@@ -160,6 +233,45 @@
       height: auto;
       display: block;
       margin: 0 auto;
+    }
+
+    .technical-details {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #dee2e6;
+    }
+    
+    .collapsible {
+      background-color: #eee;
+      color: #444;
+      cursor: pointer;
+      padding: 15px;
+      width: 100%;
+      border: none;
+      text-align: left;
+      outline: none;
+      font-size: 1rem;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+    
+    .collapsible:hover {
+      background-color: #ddd;
+    }
+    
+    .collapsible-content {
+      padding: 0 15px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+      background-color: #f9f9f9;
+    }
+    
+    .collapsible-content.active {
+      max-height: 1000px;
+      padding: 15px;
     }
 
   </style>
@@ -197,34 +309,34 @@
        <div class="form-section">
         <label style="font-weight: bold;">Tipo de autoridad:</label>
         <div class="checkbox-group">
-          <label><input type="checkbox" name="CAE_TYPE_4"> Agua. energia, transporte y telecomunicaciones</label>
+          <label><input type="checkbox" name="CAE_TYPE_4"> Agua, energía, transporte y telecomunicaciones</label>
           <label><input type="checkbox" name="CAE_TYPE_5"> European Union Institution</label>
-          <label><input type="checkbox" name="CAE_TYPE_3"> Autroidad Regional</label>
+          <label><input type="checkbox" name="CAE_TYPE_3"> Autoridad Regional</label>
         </div>
       </div>
 
        <div class="form-section">
         <label style="font-weight: bold;">Clasificación de actividad:</label>
         <div class="checkbox-group">
-          <label><input type="checkbox" name="GROUP_CPV_45"> Trabajos de demolición.</label>
-          <label><input type="checkbox" name="GROUP_CPV_15"> Alimentos, bebidas, tabaco y productos afines.</label>
-          <label><input type="checkbox" name="GROUP_CPV_33"> Equipamiento y articulos médicos, farmacéuticos y de higiene personal.</label>
+          <label><input type="checkbox" name="GROUP_CPV_45"> Trabajos de demolición</label>
+          <label><input type="checkbox" name="GROUP_CPV_15"> Alimentos, bebidas, tabaco y productos afines</label>
+          <label><input type="checkbox" name="GROUP_CPV_33"> Equipamiento y artículos médicos, farmacéuticos y de higiene personal</label>
         </div>
       </div>
 
        <div class="form-section">
         <label style="font-weight: bold;">Actividad principal:</label>
         <div class="checkbox-group">
-          <label><input type="checkbox" name="MAIN_ACTIVITY_health"> Salud.</label>
-          <label><input type="checkbox" name="MAIN_ACTIVITY_general_public_services"> General servicios públicos.</label>
+          <label><input type="checkbox" name="MAIN_ACTIVITY_health"> Salud</label>
+          <label><input type="checkbox" name="MAIN_ACTIVITY_general_public_services"> General servicios públicos</label>
         </div>
       </div>
 
       <div class="form-section">
         <label style="font-weight: bold;">País:</label>
         <div class="checkbox-group">
-          <label><input type="checkbox" name="ISO_COUNTRY_CODE_lu"> LU</label>
-          <label><input type="checkbox" name="ISO_COUNTRY_CODE_si"> SI</label>
+          <label><input type="checkbox" name="ISO_COUNTRY_CODE_lu"> Luxemburgo (LU)</label>
+          <label><input type="checkbox" name="ISO_COUNTRY_CODE_si"> Eslovenia (SI)</label>
         </div>
       </div>
 
@@ -240,179 +352,264 @@
       <label style="font-weight: bold;">Número de ofertas PYMEs:</label>
       <input type="number" name="NUMBER_TENDERS_SME" required min="0" />
 
-      <div>
-        <label>País:</label>
-        <div class="checkbox-group">
-          <label><input type="checkbox" name="ISO_COUNTRY_CODE_lu"> LU</label>
-          <label><input type="checkbox" name="ISO_COUNTRY_CODE_si"> SI</label>
-        </div>
-      </div>
-
       <button type="button" onclick="obtenerPrediccion()">Obtener sugerencia</button>
     </div>
 
     <div class="results-section">
-      <h3>Resultado de los Modelos</h3>
+      <h3>Sugerencia de Duración del Contrato</h3>
       <div id="resultados"></div>
       <div id="resumen" class="summary"></div>
     </div>
   </div>
 
   <script>
-
-    // Evitar "-", "+", ".", "e" y "E", y forzar que el valor sea >= 0
-  document.querySelectorAll('input[type="number"][min="0"]').forEach(input => {
-
-      // Bloquea las teclas no deseadas
+    // Evitar caracteres no deseados en inputs numéricos
+    document.querySelectorAll('input[type="number"][min="0"]').forEach(input => {
       input.addEventListener('keypress', e => {
-          if (['-', '+', '.', 'e', 'E'].includes(e.key)) {
-              e.preventDefault();
-          }
+        if (['-', '+', '.', 'e', 'E'].includes(e.key)) {
+          e.preventDefault();
+        }
       });
 
-      // Si se pega o escribe algo negativo, lo corrige
       input.addEventListener('input', () => {
-          if (input.value < 0) {
-              input.value = 0;
-          }
+        if (input.value < 0) {
+          input.value = 0;
+        }
       });
-  });
-
-
-
-  async function obtenerPrediccion() {
-    const modelo = document.getElementById("modelo").value;
-    const entrada = {};
-    const seccion = document.getElementById("form-section");
-    const resumenDiv = document.getElementById("resumen");
-    const resultadosDiv = document.getElementById("resultados");
-    resumenDiv.innerHTML = "";
-    resumenDiv.classList.remove("error");
-    resultadosDiv.innerHTML = "";
-
-    seccion.querySelectorAll("select, input[type='number']").forEach(el => {
-      const nombre = el.name;
-      let valor = el.value;
-      if (valor === "" || valor === null) {
-        valor = 0;
-      } else if (!isNaN(valor)) {
-        valor = Number(valor);
-      }
-      entrada[nombre] = valor;
-      el.style.borderColor = "#ccc";
     });
 
-    seccion.querySelectorAll("input[type='checkbox']").forEach(cb => {
-      entrada[cb.name] = cb.checked ? 1 : 0;
-    });
-
-    try {
-      const resp = await fetch("http://localhost:5000/predict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ modelo, entrada })
+    // Función para hacer elementos colapsables
+    function makeCollapsible() {
+      document.querySelectorAll('.collapsible').forEach(button => {
+        button.addEventListener('click', function() {
+          this.classList.toggle('active');
+          const content = this.nextElementSibling;
+          content.classList.toggle('active');
+        });
       });
-
-      const data = await resp.json();
-      console.log("Respuesta del backend:", data);
-
-      if (data.error) {
-        resumenDiv.classList.add("error");
-        resumenDiv.innerText = `Error: ${data.error}` + (data.campos_faltantes ? `\nCampos faltantes: ${data.campos_faltantes.join(", ")}` : "");
-        return;
-      }
-
-      if (!data.prediccion) {
-        resumenDiv.classList.add("error");
-        resumenDiv.innerText = "No se pudo interpretar la respuesta del modelo.";
-        return;
-      }
-
-      const mostrar = (nombre, resultado) => {
-        const predTexto = resultado.prediccion;
-        const proba = resultado.probabilidad;
-        const probaPorc = (proba * 100).toFixed(2);
-        let colorBarra = "#ccc";
-        if (proba < 0.5) colorBarra = "#e74c3c";
-        else if (proba < 0.8) colorBarra = "#f39c12";
-        else colorBarra = "#2ecc71";
-
-        let reglasHTML = "";
-        if (resultado.reglas_por_clase) {
-          reglasHTML += `<div class="lime-rules">
-            <h4>Reglas explicativas (LIME)</h4>
-            <p>Estas reglas representan el razonamiento aproximado del modelo:</p>`;
-          for (const [clase, reglas] of Object.entries(resultado.reglas_por_clase)) {
-            reglasHTML += `<div><strong>Clase ${clase}:</strong><ul>`;
-            reglas.forEach(r => reglasHTML += `<li>${r}</li>`);
-            reglasHTML += `</ul></div>`;
-          }
-          reglasHTML += `</div>`;
-        }
-
-        let tablaHTML = "";
-        if (resultado.tabla_lime) {
-          tablaHTML += `
-            <div class="lime-rules" style="margin-top: 15px;">
-              <h4>Resumen de características más influyentes</h4>
-              <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                  <tr>
-                    <th style="border:1px solid #ccc; padding:6px;">Característica</th>
-                    <th style="border:1px solid #ccc; padding:6px;">Valor</th>
-                    <th style="border:1px solid #ccc; padding:6px;">Influencia</th>
-                  </tr>
-                </thead><tbody>`;
-          resultado.tabla_lime.forEach(f => {
-            const icono = f.influencia === "Positiva" ? "🔥" : "🔻";
-            tablaHTML += `
-              <tr>
-                <td style="border:1px solid #ccc; padding:6px;">${f.caracteristica}</td>
-                <td style="border:1px solid #ccc; padding:6px;">${f.valor}</td>
-                <td style="border:1px solid #ccc; padding:6px;">${icono} ${f.influencia}</td>
-              </tr>`;
-          });
-          tablaHTML += `</tbody></table></div>`;
-        }
-
-        resultadosDiv.innerHTML += `
-          <div class="result-card">
-            <h4>Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</h4>
-            
-            
-            ${(resultado.explicacion_lime_custom_base64 || resultado.grafico_probabilidades_base64) ? `
-            <div class="lime-card">
-              <h4>Explicación LIME</h4>
-              ${resultado.grafico_probabilidades_base64 ? `<img src="data:image/png;base64,${resultado.grafico_probabilidades_base64}" alt="Probabilidades por clase" style="max-width:100%; height:auto;" />` : ''}
-            </div>` : ''}
-            ${reglasHTML}
-           
-          </div>`;
-
-          // Mostrar mensaje explicativo si existe
-        if (resultado.mensaje_explicativo) {
-          resultadosDiv.innerHTML += `
-            <div class="result-card" style="background: #dfeff6; border-left: 5px solid #3498db;">
-              <p style="font-style: italic; color: #2c3e50;">${resultado.mensaje_explicativo}</p>
-            </div>`;
-}
-
-      };
-
-      mostrar(modelo, data);
-
-      if (data.mensaje) {
-        resumenDiv.classList.remove("error");
-        resumenDiv.innerText = data.mensaje_explicativo;
-      }
-
-    } catch (error) {
-      resumenDiv.classList.add("error");
-      resumenDiv.innerText = "Error al obtener la predicción.";
-      console.error(error);
     }
-  }
+
+    async function obtenerPrediccion() {
+      const modelo = document.getElementById("modelo").value;
+      const entrada = {};
+      const seccion = document.getElementById("form-section");
+      const resumenDiv = document.getElementById("resumen");
+      const resultadosDiv = document.getElementById("resultados");
+      
+      resumenDiv.innerHTML = "";
+      resumenDiv.classList.remove("error");
+      resultadosDiv.innerHTML = "";
+
+      // Recopilar datos del formulario
+      seccion.querySelectorAll("select, input[type='number']").forEach(el => {
+        const nombre = el.name;
+        let valor = el.value;
+        if (valor === "" || valor === null) {
+          valor = 0;
+        } else if (!isNaN(valor)) {
+          valor = Number(valor);
+        }
+        entrada[nombre] = valor;
+        el.style.borderColor = "#ccc";
+      });
+
+      seccion.querySelectorAll("input[type='checkbox']").forEach(cb => {
+        entrada[cb.name] = cb.checked ? 1 : 0;
+      });
+
+      try {
+        const resp = await fetch("http://localhost:5000/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ modelo, entrada })
+        });
+
+        const data = await resp.json();
+        console.log("Respuesta del backend:", data);
+
+        if (data.error) {
+          resumenDiv.classList.add("error");
+          resumenDiv.innerText = `Error: ${data.error}` + (data.campos_faltantes ? `\nCampos faltantes: ${data.campos_faltantes.join(", ")}` : "");
+          return;
+        }
+
+        if (!data.prediccion) {
+          resumenDiv.classList.add("error");
+          resumenDiv.innerText = "No se pudo interpretar la respuesta del modelo.";
+          return;
+        }
+
+        // ⭐ NUEVA FUNCIÓN PARA MOSTRAR SUGERENCIAS DE DURACIÓN
+        const mostrarSugerencias = (resultado) => {
+          let html = '';
+          
+          // Sugerencia principal destacada
+          if (resultado.sugerencia_principal) {
+            const sugerencia = resultado.sugerencia_principal;
+            html += `
+              <div class="duration-suggestion">
+                <div class="duration-main">
+                  <h3 style="margin: 0; font-size: 1.2rem;">📋 Duración Recomendada</h3>
+                  <div class="duration-value">${sugerencia.valor_meses} meses</div>
+                  <p style="margin: 5px 0; font-size: 1rem; opacity: 0.9;">${sugerencia.descripcion}</p>
+                  ${sugerencia.justificacion ? `<p style="font-size: 0.9rem; opacity: 0.8; margin: 0;">${sugerencia.justificacion}</p>` : ''}
+                </div>
+              </div>`;
+          }
+
+          // Nivel de confianza
+          if (resultado.nivel_confianza || resultado.sugerencias_duracion?.confianza) {
+            const confianza = resultado.nivel_confianza || resultado.sugerencias_duracion.confianza;
+            const nivel = confianza.nivel || 'Media';
+            const porcentaje = confianza.porcentaje || `${(resultado.probabilidad * 100).toFixed(1)}%`;
+            
+            let claseConfianza = 'confidence-medium';
+            if (nivel === 'Alta') claseConfianza = 'confidence-high';
+            if (nivel === 'Baja') claseConfianza = 'confidence-low';
+            
+            html += `
+              <div class="confidence-indicator ${claseConfianza}">
+                <h4 style="margin: 0 0 8px 0;">🎯 Nivel de Confianza: ${nivel}</h4>
+                <p style="margin: 0; font-size: 0.95rem;">
+                  <strong>${porcentaje}</strong> - ${confianza.interpretacion || 'Predicción del modelo'}
+                </p>
+              </div>`;
+          }
+
+          // Alternativas de duración
+          if (resultado.sugerencias_duracion?.alternativas) {
+            html += `
+              <div class="result-card">
+                <h4>⚖️ Opciones de Duración</h4>
+                <div class="duration-alternatives">`;
+            
+            resultado.sugerencias_duracion.alternativas.forEach((alt, index) => {
+              const esRecomendada = alt.tipo === 'Estándar' ? 'recommended' : '';
+              html += `
+                <div class="duration-option ${esRecomendada}">
+                  <div style="font-weight: bold; margin-bottom: 5px;">${alt.tipo}</div>
+                  <div style="font-size: 1.3rem; font-weight: bold; color: #2c3e50;">${alt.valor} meses</div>
+                  <div style="font-size: 0.8rem; margin-top: 5px;">${alt.uso_recomendado}</div>
+                  ${alt.equivalencias ? `
+                    <div style="font-size: 0.75rem; margin-top: 8px; opacity: 0.7;">
+                      📅 ${alt.equivalencias.dias} días<br>
+                      📆 ${alt.equivalencias.años} años
+                    </div>` : ''}
+                </div>`;
+            });
+            
+            html += `</div></div>`;
+          }
+
+          // Recomendaciones contractuales
+          if (resultado.recomendaciones_contractuales || resultado.sugerencias_duracion?.recomendaciones_contractuales) {
+            const recomendaciones = resultado.recomendaciones_contractuales || resultado.sugerencias_duracion.recomendaciones_contractuales;
+            html += `
+              <div class="recommendations">
+                <h4>💡 Recomendaciones para el Contrato</h4>
+                <ul>`;
+            recomendaciones.forEach(rec => {
+              html += `<li>${rec}</li>`;
+            });
+            html += `</ul></div>`;
+          }
+
+          return html;
+        };
+
+        // Mostrar las sugerencias principales
+        const sugerenciasHTML = mostrarSugerencias(data);
+        resultadosDiv.innerHTML = sugerenciasHTML;
+
+        // ⭐ MOSTRAR DETALLES TÉCNICOS (LIME, etc.) EN SECCIÓN COLAPSABLE
+        const mostrarDetallesTecnicos = (nombre, resultado) => {
+          const predTexto = resultado.prediccion;
+          const proba = resultado.probabilidad;
+          const probaPorc = (proba * 100).toFixed(2);
+
+          let reglasHTML = "";
+          if (resultado.reglas_por_clase) {
+            reglasHTML += `<div class="lime-rules">
+              <h4>Reglas explicativas (LIME)</h4>
+              <p>Estas reglas representan el razonamiento aproximado del modelo:</p>`;
+            for (const [clase, reglas] of Object.entries(resultado.reglas_por_clase)) {
+              reglasHTML += `<div><strong>Clase ${clase}:</strong><ul>`;
+              reglas.forEach(r => reglasHTML += `<li>${r}</li>`);
+              reglasHTML += `</ul></div>`;
+            }
+            reglasHTML += `</div>`;
+          }
+
+          let tablaHTML = "";
+          if (resultado.tabla_lime) {
+            tablaHTML += `
+              <div class="lime-rules" style="margin-top: 15px;">
+                <h4>Características más influyentes</h4>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr>
+                      <th style="border:1px solid #ccc; padding:6px;">Característica</th>
+                      <th style="border:1px solid #ccc; padding:6px;">Valor</th>
+                      <th style="border:1px solid #ccc; padding:6px;">Influencia</th>
+                    </tr>
+                  </thead><tbody>`;
+            resultado.tabla_lime.forEach(f => {
+              const icono = f.influencia === "Positiva" ? "🔥" : "🔻";
+              tablaHTML += `
+                <tr>
+                  <td style="border:1px solid #ccc; padding:6px;">${f.caracteristica}</td>
+                  <td style="border:1px solid #ccc; padding:6px;">${f.valor}</td>
+                  <td style="border:1px solid #ccc; padding:6px;">${icono} ${f.influencia}</td>
+                </tr>`;
+            });
+            tablaHTML += `</tbody></table></div>`;
+          }
+
+          return `
+            <div class="technical-details">
+              <button class="collapsible">🔍 Ver Detalles Técnicos del Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</button>
+              <div class="collapsible-content">
+                <div class="result-card" style="margin: 0;">
+                  <h4>Información Técnica</h4>
+                  <p><strong>Predicción original:</strong> ${predTexto}</p>
+                  <p><strong>Probabilidad:</strong> ${probaPorc}%</p>
+                  
+                  ${(resultado.grafico_probabilidades_base64) ? `
+                  <div class="lime-card">
+                    <h4>Distribución de Probabilidades</h4>
+                    <img src="data:image/png;base64,${resultado.grafico_probabilidades_base64}" alt="Probabilidades por clase" style="max-width:100%; height:auto;" />
+                  </div>` : ''}
+                  
+                  ${reglasHTML}
+                  ${tablaHTML}
+                </div>
+              </div>
+            </div>`;
+        };
+
+        // Agregar detalles técnicos colapsables
+        resultadosDiv.innerHTML += mostrarDetallesTecnicos(modelo, data);
+
+        // Activar funcionalidad colapsable
+        makeCollapsible();
+
+        // Mostrar mensaje explicativo si existe
+        if (data.mensaje_explicativo) {
+          resumenDiv.classList.remove("error");
+          resumenDiv.innerHTML = `
+            <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60;">
+              <h4 style="margin: 0 0 10px 0; color: #27ae60;">📊 Análisis Completo</h4>
+              <p style="margin: 0; line-height: 1.5;">${data.mensaje_explicativo}</p>
+            </div>`;
+        }
+
+      } catch (error) {
+        resumenDiv.classList.add("error");
+        resumenDiv.innerText = "Error al obtener la predicción.";
+        console.error(error);
+      }
+    }
   </script>
 
   {% if session['usuario'] %}

@@ -12,7 +12,144 @@ import base64
 import re
 from Util.Util import plot_lime_custom, construir_tabla_lime, plot_probabilidades_clases
 from Util.reglas_lime import convert_to_if_then
+#-----------------------------------------------------------------------------------------------------
 
+
+def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None):
+    """Convierte intervalo de predicción en sugerencias prácticas de duración"""
+    import re
+    
+    # DEBUG: Ver qué estamos recibiendo
+    print(f"🔍 DEBUG: prediccion_intervalo = '{prediccion_intervalo}'")
+    print(f"🔍 DEBUG: type(prediccion_intervalo) = {type(prediccion_intervalo)}")
+    print(f"🔍 DEBUG: probabilidades = {probabilidades}")
+    
+    try:
+        # Extraer números del intervalo
+        numeros = re.findall(r"[-+]?\d*\.?\d+", prediccion_intervalo)
+        print(f"🔍 DEBUG: números encontrados = {numeros}")
+        
+        if len(numeros) >= 2:
+            limite_inf = max(0, float(numeros[0]))  # No duraciones negativas
+            limite_sup = float(numeros[1])
+            
+            print(f"🔍 DEBUG: limite_inf = {limite_inf}, limite_sup = {limite_sup}")
+            
+            # Calcular opciones
+            minimo = round(limite_inf, 0)
+            promedio = round((limite_inf + limite_sup) / 2, 0)
+            maximo = round(limite_sup, 0)
+            
+            print(f"🔍 DEBUG: minimo = {minimo}, promedio = {promedio}, maximo = {maximo}")
+            
+            # Generar sugerencias múltiples
+            sugerencias = {
+                "opcion_recomendada": {
+                    "valor": promedio,
+                    "unidad": "meses",
+                    "descripcion": f"Duración equilibrada ({promedio} meses)",
+                    "justificacion": "Basado en el punto medio del rango predicho"
+                },
+                "alternativas": [
+                    {
+                        "tipo": "Conservadora",
+                        "valor": minimo,
+                        "unidad": "meses", 
+                        "descripcion": f"Duración mínima ({minimo} meses)",
+                        "uso_recomendado": "Para proyectos con alcance bien definido"
+                    },
+                    {
+                        "tipo": "Estándar",
+                        "valor": promedio,
+                        "unidad": "meses",
+                        "descripcion": f"Duración promedio ({promedio} meses)", 
+                        "uso_recomendado": "Para la mayoría de casos"
+                    },
+                    {
+                        "tipo": "Extendida",
+                        "valor": maximo,
+                        "unidad": "meses",
+                        "descripcion": f"Duración máxima ({maximo} meses)",
+                        "uso_recomendado": "Para proyectos complejos con incertidumbre"
+                    }
+                ],
+                "rango_original": {
+                    "minimo": limite_inf,
+                    "maximo": limite_sup,
+                    "unidad": "meses"
+                }
+            }
+            
+            # Añadir equivalencias en diferentes unidades
+            for alt in sugerencias["alternativas"]:
+                alt["equivalencias"] = {
+                    "dias": round(alt["valor"] * 30.44),
+                    "años": round(alt["valor"] / 12, 1)
+                }
+            
+            # Añadir recomendaciones según duración
+            recomendaciones = []
+            if promedio <= 6:
+                recomendaciones = [
+                    "📋 Contrato de corta duración - definir entregables específicos",
+                    "💰 Considerar pagos por hitos",
+                    "🔄 Incluir opción de renovación si es necesario"
+                ]
+            elif promedio <= 24:
+                recomendaciones = [
+                    "📊 Incluir evaluaciones trimestrales",
+                    "💱 Considerar cláusulas de ajuste de precios",
+                    "📋 Definir procedimientos de modificación"
+                ]
+            else:
+                recomendaciones = [
+                    "🎯 Establecer hitos semestrales de evaluación",
+                    "💼 Incluir garantías de cumplimiento",
+                    "📈 Cláusulas de revisión anual"
+                ]
+                
+            sugerencias["recomendaciones_contractuales"] = recomendaciones
+            
+            # Añadir nivel de confianza
+            if probabilidades:
+                max_prob = max(probabilidades)
+                sugerencias["confianza"] = {
+                    "nivel": "Alta" if max_prob > 0.7 else "Media" if max_prob > 0.4 else "Baja",
+                    "porcentaje": f"{max_prob:.1%}",
+                    "interpretacion": "Predicción confiable" if max_prob > 0.6 else "Considerar análisis adicional"
+                }
+            
+            print(f"🔍 DEBUG: Retornando sugerencias calculadas correctamente")
+            return sugerencias
+            
+        else:
+            # Fallback si no se puede parsear el intervalo
+            print(f"⚠️ DEBUG: No se encontraron suficientes números. len(numeros) = {len(numeros)}")
+            return {
+                "opcion_recomendada": {
+                    "valor": 12,
+                    "unidad": "meses",
+                    "descripcion": "Duración estándar por defecto",
+                    "justificacion": "No se pudo determinar el rango específico"
+                }
+            }
+            
+    except Exception as e:
+        print(f"❌ ERROR generando sugerencias: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "opcion_recomendada": {
+                "valor": 12,
+                "unidad": "meses", 
+                "descripcion": "Duración estándar por defecto",
+                "justificacion": "Error en el procesamiento de la predicción"
+            }
+        }
+
+
+
+#-------------------------------------------------------------------------------------------
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 app = Flask(__name__)
@@ -265,16 +402,31 @@ def predict():
             f"{mensaje_duracion}. Esta recomendación considera factores como el tipo de contrato, número de ofertas, "
             f"y la actividad principal de la autoridad contratante."
         )
+#-----------------------------------------------------------------------
+        # Justo antes de llamar generar_sugerencia_group_duration
+        print(f"🔍 DEBUG MAIN: pred[0] = '{pred[0]}', type = {type(pred[0])}")
+        sugerencias_duracion = generar_sugerencia_group_duration(str(pred[0]), probas)
+                    
+        sugerencias_duracion = generar_sugerencia_group_duration(str(pred[0]), probas)
+#-------------------------------------------------------------------------
+
 
         return jsonify({
-    "prediccion": str(pred[0]),
-    "probabilidad": round(float(proba), 4),
-    "grafico_probabilidades_base64": img_probas_base64,
-    "reglas_por_clase": reglas_texto,
-    "tabla_lime": tabla_lime,
-    "duracion_meses_aproximada": mensaje_duracion,
-    "mensaje_explicativo": mensaje_explicativo
-})
+            "prediccion": str(pred[0]),
+            "probabilidad": round(float(proba), 4),
+            "grafico_probabilidades_base64": img_probas_base64,
+            "reglas_por_clase": reglas_texto,
+            "tabla_lime": tabla_lime,
+            "duracion_meses_aproximada": mensaje_duracion,
+            "mensaje_explicativo": mensaje_explicativo,
+
+            #------------------------------------
+            "sugerencias_duracion": sugerencias_duracion,
+            "sugerencia_principal": {
+            "valor_meses": sugerencias_duracion["opcion_recomendada"]["valor"],
+            "descripcion": sugerencias_duracion["opcion_recomendada"]["descripcion"]}
+
+         })
 
 
     except Exception as e:
