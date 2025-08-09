@@ -14,34 +14,108 @@ from Util.Util import plot_lime_custom, construir_tabla_lime, plot_probabilidade
 from Util.reglas_lime import convert_to_if_then
 #-----------------------------------------------------------------------------------------------------
 
+def validar_entrada_modelo(entrada_mapeada):
+    """
+    Validar que al menos una categoría esté seleccionada por grupo
+    Aplica valores por defecto inteligentes para evitar configuraciones imposibles
+    """
+    print("🔧 Validando entrada del modelo...")
+    
+    # 1. Verificar actividad principal (al menos una debe estar seleccionada)
+    actividades = ['MAIN_ACTIVITY_health', 'MAIN_ACTIVITY_general_public_services']
+    actividades_seleccionadas = sum(entrada_mapeada.get(act, 0) for act in actividades)
+    
+    if actividades_seleccionadas == 0:
+        print("⚠️ No hay actividad principal seleccionada. Aplicando por defecto: Servicios públicos generales")
+        entrada_mapeada['MAIN_ACTIVITY_general_public_services'] = 1
+    elif actividades_seleccionadas > 1:
+        print("⚠️ Múltiples actividades principales seleccionadas. Manteniendo solo la primera.")
+        # Mantener solo la primera encontrada
+        primera_encontrada = False
+        for act in actividades:
+            if entrada_mapeada.get(act, 0) == 1 and not primera_encontrada:
+                primera_encontrada = True
+            elif entrada_mapeada.get(act, 0) == 1:
+                entrada_mapeada[act] = 0
+    
+    # 2. Verificar tipo de autoridad (CAE_TYPE)
+    tipos_cae = ['CAE_TYPE_3', 'CAE_TYPE_4', 'CAE_TYPE_5']
+    tipos_seleccionados = sum(entrada_mapeada.get(tipo, 0) for tipo in tipos_cae)
+    
+    if tipos_seleccionados == 0:
+        print("⚠️ No hay tipo de autoridad seleccionado. Aplicando por defecto: CAE_TYPE_4")
+        entrada_mapeada['CAE_TYPE_4'] = 1
+    elif tipos_seleccionados > 1:
+        print("⚠️ Múltiples tipos de autoridad seleccionados. Manteniendo solo el primero.")
+        primera_encontrada = False
+        for tipo in tipos_cae:
+            if entrada_mapeada.get(tipo, 0) == 1 and not primera_encontrada:
+                primera_encontrada = True
+            elif entrada_mapeada.get(tipo, 0) == 1:
+                entrada_mapeada[tipo] = 0
+    
+    # 3. Verificar grupo CPV (clasificación de actividad)
+    grupos_cpv = ['GROUP_CPV_15', 'GROUP_CPV_33', 'GROUP_CPV_45']
+    grupos_seleccionados = sum(entrada_mapeada.get(grupo, 0) for grupo in grupos_cpv)
+    
+    if grupos_seleccionados == 0:
+        print("⚠️ No hay clasificación de actividad seleccionada. Aplicando por defecto: GROUP_CPV_15")
+        entrada_mapeada['GROUP_CPV_15'] = 1
+    # Nota: Para CPV, pueden haber múltiples seleccionados (es más realista)
+    
+    # 4. Verificar país (ISO_COUNTRY_CODE)
+    paises = ['ISO_COUNTRY_CODE_lu', 'ISO_COUNTRY_CODE_si']
+    paises_seleccionados = sum(entrada_mapeada.get(pais, 0) for pais in paises)
+    
+    if paises_seleccionados == 0:
+        print("⚠️ No hay país seleccionado. Aplicando por defecto: Luxemburgo")
+        entrada_mapeada['ISO_COUNTRY_CODE_lu'] = 1
+    elif paises_seleccionados > 1:
+        print("⚠️ Múltiples países seleccionados. Manteniendo solo el primero.")
+        primera_encontrada = False
+        for pais in paises:
+            if entrada_mapeada.get(pais, 0) == 1 and not primera_encontrada:
+                primera_encontrada = True
+            elif entrada_mapeada.get(pais, 0) == 1:
+                entrada_mapeada[pais] = 0
+    
+    # 5. Validar valores numéricos
+    campos_numericos = ['NUMBER_AWARDS', 'LOTS_NUMBER', 'NUMBER_OFFERS', 'NUMBER_TENDERS_SME']
+    for campo in campos_numericos:
+        valor = entrada_mapeada.get(campo, 0)
+        if valor < 0:
+            print(f"⚠️ Valor negativo en {campo}. Estableciendo en 0.")
+            entrada_mapeada[campo] = 0
+        elif valor == 0 and campo in ['NUMBER_AWARDS', 'LOTS_NUMBER', 'NUMBER_OFFERS']:
+            print(f"⚠️ Valor 0 en {campo}. Estableciendo en 1 (mínimo realista).")
+            entrada_mapeada[campo] = 1
+    
+    # 6. Lógica de negocio: NUMBER_TENDERS_SME no puede ser mayor que NUMBER_OFFERS
+    if entrada_mapeada.get('NUMBER_TENDERS_SME', 0) > entrada_mapeada.get('NUMBER_OFFERS', 0):
+        print("⚠️ Número de ofertas PYMEs mayor que total de ofertas. Corrigiendo.")
+        entrada_mapeada['NUMBER_TENDERS_SME'] = entrada_mapeada.get('NUMBER_OFFERS', 0)
+    
+    print("✅ Validación completada")
+    return entrada_mapeada
+
 
 def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None):
     """Convierte intervalo de predicción en sugerencias prácticas de duración"""
     import re
     import numpy as np
     
-    # DEBUG: Ver qué estamos recibiendo
-    print(f"🔍 DEBUG: prediccion_intervalo = '{prediccion_intervalo}'")
-    print(f"🔍 DEBUG: type(prediccion_intervalo) = {type(prediccion_intervalo)}")
-    print(f"🔍 DEBUG: probabilidades = {probabilidades}")
-    
     try:
         # Extraer números del intervalo
         numeros = re.findall(r"[-+]?\d*\.?\d+", prediccion_intervalo)
-        print(f"🔍 DEBUG: números encontrados = {numeros}")
         
         if len(numeros) >= 2:
             limite_inf = max(0, float(numeros[0]))  # No duraciones negativas
             limite_sup = float(numeros[1])
             
-            print(f"🔍 DEBUG: limite_inf = {limite_inf}, limite_sup = {limite_sup}")
-            
             # Calcular opciones
             minimo = round(limite_inf, 0)
             promedio = round((limite_inf + limite_sup) / 2, 0)
             maximo = round(limite_sup, 0)
-            
-            print(f"🔍 DEBUG: minimo = {minimo}, promedio = {promedio}, maximo = {maximo}")
             
             # Generar sugerencias múltiples
             sugerencias = {
@@ -111,32 +185,25 @@ def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None)
                 
             sugerencias["recomendaciones_contractuales"] = recomendaciones
             
-            # 🔧 CORRECCIÓN DEL ERROR NUMPY:
             # Verificar probabilidades de forma segura para arrays NumPy
             if probabilidades is not None and hasattr(probabilidades, '__len__') and len(probabilidades) > 0:
                 try:
-                    print(f"🔍 DEBUG: Procesando probabilidades...")
-                    
                     # Convertir a lista Python si es array NumPy para evitar ambigüedad
                     if hasattr(probabilidades, 'tolist'):
                         probs_list = probabilidades.tolist()
-                        print(f"🔍 DEBUG: Convertido a lista: {probs_list}")
                     else:
                         probs_list = list(probabilidades)
                     
                     # Ahora sí podemos usar max() sin problemas
                     max_prob = max(probs_list)
-                    print(f"🔍 DEBUG: max_prob calculada = {max_prob}")
                     
                     sugerencias["confianza"] = {
                         "nivel": "Alta" if max_prob > 0.7 else "Media" if max_prob > 0.4 else "Baja",
                         "porcentaje": f"{max_prob:.1%}",
                         "interpretacion": "Predicción confiable" if max_prob > 0.6 else "Considerar análisis adicional"
                     }
-                    print(f"🔍 DEBUG: Confianza calculada: {sugerencias['confianza']}")
                     
                 except Exception as prob_error:
-                    print(f"⚠️ Error procesando probabilidades: {prob_error}")
                     # Fallback para confianza
                     sugerencias["confianza"] = {
                         "nivel": "Media",
@@ -144,20 +211,16 @@ def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None)
                         "interpretacion": "Error calculando confianza"
                     }
             else:
-                print("⚠️ No se proporcionaron probabilidades válidas")
                 sugerencias["confianza"] = {
                     "nivel": "Media",
                     "porcentaje": "N/A", 
                     "interpretacion": "Probabilidades no disponibles"
                 }
             
-            print(f"🔍 DEBUG: Retornando sugerencias calculadas correctamente")
-            print(f"🔍 DEBUG: Valor recomendado final = {sugerencias['opcion_recomendada']['valor']} meses")
             return sugerencias
             
         else:
             # Fallback si no se puede parsear el intervalo
-            print(f"⚠️ DEBUG: No se encontraron suficientes números. len(numeros) = {len(numeros)}")
             return {
                 "opcion_recomendada": {
                     "valor": 12,
@@ -168,9 +231,6 @@ def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None)
             }
             
     except Exception as e:
-        print(f"❌ ERROR generando sugerencias: {e}")
-        import traceback
-        traceback.print_exc()
         return {
             "opcion_recomendada": {
                 "valor": 12,
@@ -179,7 +239,6 @@ def generar_sugerencia_group_duration(prediccion_intervalo, probabilidades=None)
                 "justificacion": "Error en el procesamiento de la predicción"
             }
         }
-
 
 
 #-------------------------------------------------------------------------------------------
@@ -198,14 +257,9 @@ modelos = joblib.load(MODELO_PATH)
 used_features = modelos['random_forest'].used_features
 clases = modelos['random_forest'].classes_
 
-
-# Traducción de clase a duración en meses (según ANNEX II)
-DURACION_ESTIMADA_POR_CLASE = {
-    "short": 3.0,    # ajusta según las clases reales de tu modelo
-    "medium": 12.0,
-    "long": 36.0
-}
-
+print("✅ Modelos cargados correctamente")
+print(f"📊 Features disponibles: {len(used_features)}")
+print(f"🎯 Clases del modelo: {len(clases)}")
 
 # Mapeo completo de nombres frontend a backend
 CAMPO_MAPEO_COMPLETO = {
@@ -228,8 +282,6 @@ CAMPO_MAPEO_COMPLETO = {
     "GROUP_CPV_45": "GROUP_CPV_45",
 }
 
-
-
 # Funciones de gestión de usuarios
 def cargar_usuarios():
     if os.path.exists(USUARIOS_PATH):
@@ -241,9 +293,6 @@ def guardar_usuarios(usuarios):
     with open(USUARIOS_PATH, "w") as f:
         json.dump(usuarios, f, indent=2)
 
-
-
-# --------------------------------------------
 # FUNCION para traducir etiquetas a formato legible
 def interpretar_etiqueta_duracion(etiqueta):
     """
@@ -263,7 +312,6 @@ def interpretar_etiqueta_duracion(etiqueta):
             return f"Duración estimada: {etiqueta}"
     except:
         return "Duración estimada desconocida"
-
 
 # Rutas para registro/login/logout/index
 @app.route("/register", methods=["GET", "POST"])
@@ -303,8 +351,6 @@ def index():
         return redirect("/login")
     return render_template("formulario.html")
 
-
-
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -314,7 +360,6 @@ def predict():
 
         # 🔧 Remover llave vacía si llega desde el frontend
         if "" in entrada_raw:
-            print("⚠️ Removiendo llave vacía del payload de entrada")
             entrada_raw.pop("")
 
         print("📥 Entrada cruda desde el frontend:")
@@ -326,8 +371,9 @@ def predict():
             clave_backend = CAMPO_MAPEO_COMPLETO.get(clave_frontend, clave_frontend)
             entrada_mapeada[clave_backend] = valor
 
-        print("\n🔁 Entrada mapeada a nombres del modelo:")
-        print(json.dumps(entrada_mapeada, indent=2))
+        # ======= VALIDACIÓN DE ENTRADA NUEVA =======
+        entrada_mapeada = validar_entrada_modelo(entrada_mapeada)
+        # ==========================================
 
         # ======= SELECCIÓN DEL MODELO Y SUS FEATURES =======
         modelo = modelos.get(modelo_nombre)
@@ -342,15 +388,37 @@ def predict():
         # Completar con 0 campos faltantes
         for campo in used_features_modelo:
             if campo not in entrada_mapeada:
-                print(f"⚠️ Campo faltante detectado: {campo}, se establece en 0")
                 entrada_mapeada[campo] = 0
 
-        # Mostrar todos los campos finales
-        print("\n✅ Entrada final completa (lista para el modelo):")
+        print("✅ Entrada final validada (lista para el modelo):")
         print(json.dumps(entrada_mapeada, indent=2))
 
         # Crear dataframe con el orden correcto para el modelo
         df = pd.DataFrame([entrada_mapeada])[used_features_modelo]
+
+        # DEBUG: Justo antes de pred = modelo.predict(df)
+        print(f"\n🔍 DEBUG ENTRADA AL MODELO:")
+        print(f"Modelo: {modelo_nombre}")
+        print(f"DataFrame shape: {df.shape}")
+        print(f"Valores de entrada:")
+        for col in df.columns:
+            print(f"  {col}: {df[col].iloc[0]}")
+
+
+        # DEBUG: Justo antes de pred = modelo.predict(df)
+        print(f"\n🔍 DEBUG CRÍTICO:")
+        print(f"Archivo del modelo: {MODELO_PATH}")
+        print(f"Modelo seleccionado: {modelo_nombre}")
+        print(f"Tipo de modelo: {type(modelo)}")
+        print(f"DataFrame final:")
+        for col in df.columns:
+            print(f"  {col}: {df[col].iloc[0]}")
+
+        # Verificar que es el modelo balanceado
+        if hasattr(modelo, 'class_weight'):
+            print(f"Class weight: {modelo.class_weight}")
+        else:
+            print("⚠️ Modelo NO tiene class_weight - podría ser el archivo anterior")
 
         # Predicción
         pred = modelo.predict(df)
@@ -361,7 +429,7 @@ def predict():
         etiqueta = str(pred[0])
         mensaje_duracion = interpretar_etiqueta_duracion(etiqueta)
 
-        print(f"\n🔮 Predicción: {pred[0]}, Probabilidad: {proba:.4f}")
+        print(f"🔮 Predicción: {pred[0]}, Probabilidad: {proba:.4f}")
 
         # =================== LIME ===================
         from lime.lime_tabular import LimeTabularExplainer
@@ -394,10 +462,6 @@ def predict():
         for fila in tabla_lime:
             if hasattr(fila["valor"], "item"):
                 fila["valor"] = fila["valor"].item()
-
-        print("\n📊 Tabla LIME generada:")
-        for fila in tabla_lime:
-            print(fila)
 
         # Procesar etiqueta como rango o valor numérico
         etiqueta = str(pred[0])
@@ -440,11 +504,6 @@ def predict():
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Error interno", "mensaje": str(e)}), 500
-
-#---------------------------------------------------------------------
-       
-#-------------------------------------------------------------------
-
 
 if __name__ == "__main__":
     app.run(debug=True)

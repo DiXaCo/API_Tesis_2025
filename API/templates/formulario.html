@@ -44,6 +44,31 @@
       width: auto; 
     }
 
+    .checkbox-group {
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 6px;
+      background: #fafafa;
+      margin-top: 5px;
+    }
+
+    /* Estilos para validación visual */
+    .checkbox-group.warning {
+      border-color: #f39c12;
+      background: #fef9e7;
+    }
+
+    .validation-note {
+      font-size: 0.85rem;
+      color: #7f8c8d;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .validation-note.warning {
+      color: #f39c12;
+    }
+
     select, input {
       padding: 8px;
       border: 1px solid #ccc;
@@ -290,67 +315,71 @@
       <!-- Campos requeridos con nombres corregidos -->
       <label style="font-weight: bold;">Múltiples entidades contratantes:</label>
       <select name="B_MULTIPLE_CAE_n" required>
+        <option value="0" selected>No</option>
         <option value="1">Sí</option>
-        <option value="0">No</option>
       </select>
 
       <label style="font-weight: bold;">Actúa en nombre de otros:</label>
       <select name="B_ON_BEHALF_n" required>
+        <option value="0" selected>No</option>
         <option value="1">Sí</option>
-        <option value="0">No</option>
       </select>
 
       <label style="font-weight: bold;">Tipo de contrato (Obras):</label>
       <select name="TYPE_OF_CONTRACT_w" required>
+        <option value="0" selected>No</option>
         <option value="1">Sí</option>
-        <option value="0">No</option>
       </select>
 
        <div class="form-section">
         <label style="font-weight: bold;">Tipo de autoridad:</label>
-        <div class="checkbox-group">
-          <label><input type="checkbox" name="CAE_TYPE_4"> Agua, energía, transporte y telecomunicaciones</label>
+        <div class="checkbox-group" id="checkbox-cae">
+          <label><input type="checkbox" name="CAE_TYPE_4" checked> Agua, energía, transporte y telecomunicaciones</label>
           <label><input type="checkbox" name="CAE_TYPE_5"> European Union Institution</label>
           <label><input type="checkbox" name="CAE_TYPE_3"> Autoridad Regional</label>
         </div>
+        <div class="validation-note">⚠️ Selecciona al menos un tipo de autoridad</div>
       </div>
 
        <div class="form-section">
         <label style="font-weight: bold;">Clasificación de actividad:</label>
-        <div class="checkbox-group">
+        <div class="checkbox-group" id="checkbox-cpv">
           <label><input type="checkbox" name="GROUP_CPV_45"> Trabajos de demolición</label>
-          <label><input type="checkbox" name="GROUP_CPV_15"> Alimentos, bebidas, tabaco y productos afines</label>
+          <label><input type="checkbox" name="GROUP_CPV_15" checked> Alimentos, bebidas, tabaco y productos afines</label>
           <label><input type="checkbox" name="GROUP_CPV_33"> Equipamiento y artículos médicos, farmacéuticos y de higiene personal</label>
         </div>
+        <div class="validation-note">⚠️ Selecciona al menos una clasificación de actividad</div>
       </div>
 
        <div class="form-section">
         <label style="font-weight: bold;">Actividad principal:</label>
-        <div class="checkbox-group">
+        <div class="checkbox-group" id="checkbox-activity">
           <label><input type="checkbox" name="MAIN_ACTIVITY_health"> Salud</label>
-          <label><input type="checkbox" name="MAIN_ACTIVITY_general_public_services"> General servicios públicos</label>
+          <label><input type="checkbox" name="MAIN_ACTIVITY_general_public_services" checked> General servicios públicos</label>
         </div>
+        <div class="validation-note">⚠️ Selecciona exactamente una actividad principal</div>
       </div>
 
       <div class="form-section">
         <label style="font-weight: bold;">País:</label>
-        <div class="checkbox-group">
-          <label><input type="checkbox" name="ISO_COUNTRY_CODE_lu"> Luxemburgo (LU)</label>
+        <div class="checkbox-group" id="checkbox-country">
+          <label><input type="checkbox" name="ISO_COUNTRY_CODE_lu" checked> Luxemburgo (LU)</label>
           <label><input type="checkbox" name="ISO_COUNTRY_CODE_si"> Eslovenia (SI)</label>
         </div>
+        <div class="validation-note">⚠️ Selecciona exactamente un país</div>
       </div>
 
       <label style="font-weight: bold;">Número de adjudicaciones:</label>
-      <input type="number" name="NUMBER_AWARDS" required min="0" />
+      <input type="number" name="NUMBER_AWARDS" required min="1" value="1" />
 
       <label style="font-weight: bold;">Número de lotes:</label>
-      <input type="number" name="LOTS_NUMBER" required min="0" />
+      <input type="number" name="LOTS_NUMBER" required min="1" value="2" />
 
       <label style="font-weight: bold;">Número de ofertas:</label>
-      <input type="number" name="NUMBER_OFFERS" required min="0" />
+      <input type="number" name="NUMBER_OFFERS" required min="1" value="2" />
 
       <label style="font-weight: bold;">Número de ofertas PYMEs:</label>
-      <input type="number" name="NUMBER_TENDERS_SME" required min="0" />
+      <input type="number" name="NUMBER_TENDERS_SME" required min="0" value="1" />
 
       <button type="button" onclick="obtenerPrediccion()">Obtener sugerencia</button>
     </div>
@@ -363,8 +392,149 @@
   </div>
 
   <script>
+    // =============== VALIDACIÓN FRONTEND ===============
+    function validarFormulario() {
+      let esValido = true;
+      const warnings = [];
+
+      // 1. Validar tipo de autoridad (al menos uno)
+      const caeCheckboxes = document.querySelectorAll('#checkbox-cae input[type="checkbox"]');
+      const caeSeleccionados = Array.from(caeCheckboxes).filter(cb => cb.checked).length;
+      
+      if (caeSeleccionados === 0) {
+        document.getElementById('checkbox-cae').classList.add('warning');
+        warnings.push('⚠️ Se auto-seleccionará "Agua, energía, transporte y telecomunicaciones" como tipo de autoridad por defecto');
+        document.querySelector('input[name="CAE_TYPE_4"]').checked = true;
+      } else {
+        document.getElementById('checkbox-cae').classList.remove('warning');
+      }
+
+      // 2. Validar clasificación de actividad (al menos una)
+      const cpvCheckboxes = document.querySelectorAll('#checkbox-cpv input[type="checkbox"]');
+      const cpvSeleccionados = Array.from(cpvCheckboxes).filter(cb => cb.checked).length;
+      
+      if (cpvSeleccionados === 0) {
+        document.getElementById('checkbox-cpv').classList.add('warning');
+        warnings.push('⚠️ Se auto-seleccionará "Alimentos, bebidas, tabaco..." como clasificación por defecto');
+        document.querySelector('input[name="GROUP_CPV_15"]').checked = true;
+      } else {
+        document.getElementById('checkbox-cpv').classList.remove('warning');
+      }
+
+      // 3. Validar actividad principal (exactamente una)
+      const activityCheckboxes = document.querySelectorAll('#checkbox-activity input[type="checkbox"]');
+      const activitySeleccionados = Array.from(activityCheckboxes).filter(cb => cb.checked);
+      
+      if (activitySeleccionados.length === 0) {
+        document.getElementById('checkbox-activity').classList.add('warning');
+        warnings.push('⚠️ Se auto-seleccionará "General servicios públicos" como actividad principal por defecto');
+        document.querySelector('input[name="MAIN_ACTIVITY_general_public_services"]').checked = true;
+      } else if (activitySeleccionados.length > 1) {
+        document.getElementById('checkbox-activity').classList.add('warning');
+        warnings.push('⚠️ Solo se puede seleccionar una actividad principal. Se mantendrá solo la primera seleccionada');
+        // Desmarcar todas excepto la primera
+        for (let i = 1; i < activitySeleccionados.length; i++) {
+          activitySeleccionados[i].checked = false;
+        }
+      } else {
+        document.getElementById('checkbox-activity').classList.remove('warning');
+      }
+
+      // 4. Validar país (exactamente uno)
+      const countryCheckboxes = document.querySelectorAll('#checkbox-country input[type="checkbox"]');
+      const countrySeleccionados = Array.from(countryCheckboxes).filter(cb => cb.checked);
+      
+      if (countrySeleccionados.length === 0) {
+        document.getElementById('checkbox-country').classList.add('warning');
+        warnings.push('⚠️ Se auto-seleccionará "Luxemburgo" como país por defecto');
+        document.querySelector('input[name="ISO_COUNTRY_CODE_lu"]').checked = true;
+      } else if (countrySeleccionados.length > 1) {
+        document.getElementById('checkbox-country').classList.add('warning');
+        warnings.push('⚠️ Solo se puede seleccionar un país. Se mantendrá solo el primer seleccionado');
+        // Desmarcar todos excepto el primero
+        for (let i = 1; i < countrySeleccionados.length; i++) {
+          countrySeleccionados[i].checked = false;
+        }
+      } else {
+        document.getElementById('checkbox-country').classList.remove('warning');
+      }
+
+      // 5. Validar campos numéricos
+      const numeroOfertas = parseInt(document.querySelector('input[name="NUMBER_OFFERS"]').value) || 1;
+      const numeroPymes = parseInt(document.querySelector('input[name="NUMBER_TENDERS_SME"]').value) || 0;
+      
+      if (numeroPymes > numeroOfertas) {
+        warnings.push('⚠️ El número de ofertas PYMEs no puede ser mayor al total de ofertas. Se ajustará automáticamente');
+        document.querySelector('input[name="NUMBER_TENDERS_SME"]').value = numeroOfertas;
+      }
+
+      // Mostrar warnings si existen
+      if (warnings.length > 0) {
+        const resumenDiv = document.getElementById("resumen");
+        resumenDiv.innerHTML = `
+          <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <h4 style="margin: 0 0 10px 0; color: #856404;">🔧 Ajustes automáticos aplicados:</h4>
+            <ul style="margin: 0; padding-left: 20px;">
+              ${warnings.map(w => `<li>${w}</li>`).join('')}
+            </ul>
+            <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #856404;">
+              <em>Estos ajustes aseguran que el modelo funcione correctamente. Puedes modificar las selecciones si lo deseas.</em>
+            </p>
+          </div>`;
+      }
+
+      return esValido;
+    }
+
+    // Añadir validación en tiempo real para checkboxes mutuamente excluyentes
+    document.addEventListener('DOMContentLoaded', function() {
+      // Validación para actividad principal (solo una)
+      const activityCheckboxes = document.querySelectorAll('#checkbox-activity input[type="checkbox"]');
+      activityCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          if (this.checked) {
+            activityCheckboxes.forEach(other => {
+              if (other !== this) other.checked = false;
+            });
+          }
+        });
+      });
+
+      // Validación para país (solo uno)
+      const countryCheckboxes = document.querySelectorAll('#checkbox-country input[type="checkbox"]');
+      countryCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+          if (this.checked) {
+            countryCheckboxes.forEach(other => {
+              if (other !== this) other.checked = false;
+            });
+          }
+        });
+      });
+
+      // Validación para ofertas PYMEs
+      const ofertasInput = document.querySelector('input[name="NUMBER_OFFERS"]');
+      const pymesInput = document.querySelector('input[name="NUMBER_TENDERS_SME"]');
+      
+      function validarPymes() {
+        const ofertas = parseInt(ofertasInput.value) || 0;
+        const pymes = parseInt(pymesInput.value) || 0;
+        
+        if (pymes > ofertas) {
+          pymesInput.value = ofertas;
+          pymesInput.style.borderColor = '#f39c12';
+          setTimeout(() => {
+            pymesInput.style.borderColor = '#ccc';
+          }, 2000);
+        }
+      }
+      
+      ofertasInput.addEventListener('input', validarPymes);
+      pymesInput.addEventListener('input', validarPymes);
+    });
+
     // Evitar caracteres no deseados en inputs numéricos
-    document.querySelectorAll('input[type="number"][min="0"]').forEach(input => {
+    document.querySelectorAll('input[type="number"]').forEach(input => {
       input.addEventListener('keypress', e => {
         if (['-', '+', '.', 'e', 'E'].includes(e.key)) {
           e.preventDefault();
@@ -372,8 +542,9 @@
       });
 
       input.addEventListener('input', () => {
-        if (input.value < 0) {
-          input.value = 0;
+        const min = parseInt(input.getAttribute('min')) || 0;
+        if (input.value < min) {
+          input.value = min;
         }
       });
     });
@@ -390,14 +561,20 @@
     }
 
     async function obtenerPrediccion() {
+      // Ejecutar validación antes de enviar
+      validarFormulario();
+      
       const modelo = document.getElementById("modelo").value;
       const entrada = {};
       const seccion = document.getElementById("form-section");
       const resumenDiv = document.getElementById("resumen");
       const resultadosDiv = document.getElementById("resultados");
       
-      resumenDiv.innerHTML = "";
-      resumenDiv.classList.remove("error");
+      // No limpiar resumen si contiene warnings de validación
+      if (!resumenDiv.innerHTML.includes('Ajustes automáticos aplicados')) {
+        resumenDiv.innerHTML = "";
+        resumenDiv.classList.remove("error");
+      }
       resultadosDiv.innerHTML = "";
 
       // Recopilar datos del formulario
@@ -596,12 +773,21 @@
 
         // Mostrar mensaje explicativo si existe
         if (data.mensaje_explicativo) {
-          resumenDiv.classList.remove("error");
-          resumenDiv.innerHTML = `
-            <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60;">
-              <h4 style="margin: 0 0 10px 0; color: #27ae60;">📊 Análisis Completo</h4>
-              <p style="margin: 0; line-height: 1.5;">${data.mensaje_explicativo}</p>
-            </div>`;
+          if (!resumenDiv.innerHTML.includes('Ajustes automáticos aplicados')) {
+            resumenDiv.classList.remove("error");
+            resumenDiv.innerHTML = `
+              <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60;">
+                <h4 style="margin: 0 0 10px 0; color: #27ae60;">📊 Análisis Completo</h4>
+                <p style="margin: 0; line-height: 1.5;">${data.mensaje_explicativo}</p>
+              </div>`;
+          } else {
+            // Añadir al final si ya hay warnings
+            resumenDiv.innerHTML += `
+              <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60; margin-top: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #27ae60;">📊 Análisis Completo</h4>
+                <p style="margin: 0; line-height: 1.5;">${data.mensaje_explicativo}</p>
+              </div>`;
+          }
         }
 
       } catch (error) {
