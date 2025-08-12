@@ -1,5 +1,11 @@
 {
   "diego.cordovar@ug.edu.ec": {
     "password": "scrypt:32768:8:1$qAcm2GrbQs2S3Gu5$bedff6bac8d566615e5fd60dd434d0f1d6e3f35af720fd54956752acf084f54245133883f2713c11955d067fa1cef37bad77956df6824047f2b937bbd44ca761"
+  },
+  "dxcordovarxd@gmail.com": {
+    "password": "scrypt:32768:8:1$hy9Qy6jQFTYilnvP$4b217e451f9a15f32b2619d457e384c5757c960a9de8e0f2e0ece3c3ab19f2e2f8eb653fa71dcaf2cb21fdd1b9273e7e07e689caa9486dfe33089bd14ec85538"
+  },
+  "xd@gmail.com": {
+    "password": "scrypt:32768:8:1$Cg3nYr2zUbll26bI$5c25290d9e7d1f622ff862eaa695c142eba8d6654340e951920e15ff9d6e61e756a57ee5735a75269b7dbad277cf20945bdef9facda8c12dc90c79f06c2cc3ae"
   }
 }
