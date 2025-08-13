@@ -389,14 +389,13 @@ def predict():
         for campo in used_features_modelo:
             if campo not in entrada_mapeada:
                 entrada_mapeada[campo] = 0
-
         print("✅ Entrada final validada (lista para el modelo):")
         print(json.dumps(entrada_mapeada, indent=2))
 
         # Crear dataframe con el orden correcto para el modelo
         df = pd.DataFrame([entrada_mapeada])[used_features_modelo]
-
-        # DEBUG: Justo antes de pred = modelo.predict(df)
+       
+        # DEBUG
         print(f"\n🔍 DEBUG ENTRADA AL MODELO:")
         print(f"Modelo: {modelo_nombre}")
         print(f"DataFrame shape: {df.shape}")
@@ -404,8 +403,7 @@ def predict():
         for col in df.columns:
             print(f"  {col}: {df[col].iloc[0]}")
 
-
-        # DEBUG: Justo antes de pred = modelo.predict(df)
+        # DEBUG
         print(f"\n🔍 DEBUG CRÍTICO:")
         print(f"Archivo del modelo: {MODELO_PATH}")
         print(f"Modelo seleccionado: {modelo_nombre}")
@@ -420,7 +418,7 @@ def predict():
         else:
             print("⚠️ Modelo NO tiene class_weight - podría ser el archivo anterior")
 
-        # Predicción
+        # Sugerencia
         pred = modelo.predict(df)
         probas = modelo.predict_proba(df)[0]
         indice_pred = list(modelo.classes_).index(pred[0])
@@ -429,7 +427,7 @@ def predict():
         etiqueta = str(pred[0])
         mensaje_duracion = interpretar_etiqueta_duracion(etiqueta)
 
-        print(f"🔮 Predicción: {pred[0]}, Probabilidad: {proba:.4f}")
+        print(f"🔮 Sugerencia: {pred[0]}, Probabilidad: {proba:.4f}")
 
         # =================== LIME ===================
         from lime.lime_tabular import LimeTabularExplainer

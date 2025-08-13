@@ -295,7 +295,7 @@
     }
     
     .collapsible-content.active {
-      max-height: 1000px;
+      max-height: 4000px;
       padding: 15px;
     }
 
@@ -649,7 +649,7 @@
               <div class="confidence-indicator ${claseConfianza}">
                 <h4 style="margin: 0 0 8px 0;">🎯 Nivel de Confianza: ${nivel}</h4>
                 <p style="margin: 0; font-size: 0.95rem;">
-                  <strong>${porcentaje}</strong> - ${confianza.interpretacion || 'Predicción del modelo'}
+                  <strong>${porcentaje}</strong> - ${confianza.interpretacion || 'Sugerencia del modelo'}
                 </p>
               </div>`;
           }
@@ -699,72 +699,264 @@
         const sugerenciasHTML = mostrarSugerencias(data);
         resultadosDiv.innerHTML = sugerenciasHTML;
 
-        // ⭐ MOSTRAR DETALLES TÉCNICOS (LIME, etc.) EN SECCIÓN COLAPSABLE
-        const mostrarDetallesTecnicos = (nombre, resultado) => {
-          const predTexto = resultado.prediccion;
-          const proba = resultado.probabilidad;
-          const probaPorc = (proba * 100).toFixed(2);
+// ⭐ LIME ACADÉMICO - CON INTERPRETACIÓN CORRECTA
+const mostrarDetallesTecnicos = (nombre, resultado) => {
+  const predTexto = resultado.prediccion;
+  const proba = resultado.probabilidad;
+  const probaPorc = (proba * 100).toFixed(2);
 
-          let reglasHTML = "";
-          if (resultado.reglas_por_clase) {
-            reglasHTML += `<div class="lime-rules">
-              <h4>Reglas explicativas (LIME)</h4>
-              <p>Estas reglas representan el razonamiento aproximado del modelo:</p>`;
-            for (const [clase, reglas] of Object.entries(resultado.reglas_por_clase)) {
-              reglasHTML += `<div><strong>Clase ${clase}:</strong><ul>`;
-              reglas.forEach(r => reglasHTML += `<li>${r}</li>`);
-              reglasHTML += `</ul></div>`;
-            }
-            reglasHTML += `</div>`;
-          }
+  // 📚 DICCIONARIO DE VARIABLES
+  const explicarVariable = (nombreVar) => {
+    const diccionario = {
+      'B_MULTIPLE_CAE_n': 'Múltiples Entidades Contratantes',
+      'B_ON_BEHALF_n': 'Representación en Nombre de Terceros',
+      'GROUP_CPV_45': 'CPV 45: Trabajos de Construcción',
+      'GROUP_CPV_33': 'CPV 33: Equipamiento Médico',
+      'GROUP_CPV_15': 'CPV 15: Alimentos y Bebidas',
+      'TYPE_OF_CONTRACT_w': 'Tipo de Contrato: Obras',
+      'MAIN_ACTIVITY_health': 'Actividad Principal: Salud',
+      'MAIN_ACTIVITY_general_public_services': 'Actividad Principal: Servicios Públicos',
+      'ISO_COUNTRY_CODE_si': 'País: Eslovenia',
+      'ISO_COUNTRY_CODE_lu': 'País: Luxemburgo',
+      'CAE_TYPE_3': 'Autoridad Regional/Local',
+      'CAE_TYPE_4': 'Autoridad Sectorial (Agua, Energía, Transporte)',
+      'CAE_TYPE_5': 'Institución de la Unión Europea',
+      'NUMBER_AWARDS': 'Número de Adjudicaciones',
+      'LOTS_NUMBER': 'Número de Lotes',
+      'NUMBER_OFFERS': 'Ofertas Recibidas',
+      'NUMBER_TENDERS_SME': 'Ofertas de PYMEs'
+    };
+    return diccionario[nombreVar] || nombreVar;
+  };
 
-          let tablaHTML = "";
-          if (resultado.tabla_lime) {
-            tablaHTML += `
-              <div class="lime-rules" style="margin-top: 15px;">
-                <h4>Características más influyentes</h4>
-                <table style="width: 100%; border-collapse: collapse;">
-                  <thead>
-                    <tr>
-                      <th style="border:1px solid #ccc; padding:6px;">Característica</th>
-                      <th style="border:1px solid #ccc; padding:6px;">Valor</th>
-                      <th style="border:1px solid #ccc; padding:6px;">Influencia</th>
-                    </tr>
-                  </thead><tbody>`;
-            resultado.tabla_lime.forEach(f => {
-              const icono = f.influencia === "Positiva" ? "🔥" : "🔻";
-              tablaHTML += `
-                <tr>
-                  <td style="border:1px solid #ccc; padding:6px;">${f.caracteristica}</td>
-                  <td style="border:1px solid #ccc; padding:6px;">${f.valor}</td>
-                  <td style="border:1px solid #ccc; padding:6px;">${icono} ${f.influencia}</td>
-                </tr>`;
-            });
-            tablaHTML += `</tbody></table></div>`;
-          }
+  const interpretarValor = (nombreVar, valor) => {
+    const interpretaciones = {
+      'B_MULTIPLE_CAE_n': valor == 1 ? 'Múltiples entidades' : 'Entidad única',
+      'B_ON_BEHALF_n': valor == 1 ? 'Nombre de terceros' : 'Nombre propio',
+      'GROUP_CPV_45': valor == 1 ? 'Sí aplica' : 'No aplica',
+      'GROUP_CPV_33': valor == 1 ? 'Sí aplica' : 'No aplica',
+      'GROUP_CPV_15': valor == 1 ? 'Sí aplica' : 'No aplica',
+      'TYPE_OF_CONTRACT_w': valor == 1 ? 'Es obra' : 'No es obra',
+      'MAIN_ACTIVITY_health': valor == 1 ? 'Sector salud' : 'Otro sector',
+      'MAIN_ACTIVITY_general_public_services': valor == 1 ? 'Servicios públicos' : 'Otro sector',
+      'ISO_COUNTRY_CODE_si': valor == 1 ? 'Eslovenia' : 'Otro país',
+      'ISO_COUNTRY_CODE_lu': valor == 1 ? 'Luxemburgo' : 'Otro país',
+      'CAE_TYPE_3': valor == 1 ? 'Regional/Local' : 'Otro tipo',
+      'CAE_TYPE_4': valor == 1 ? 'Sectorial' : 'Otro tipo',
+      'CAE_TYPE_5': valor == 1 ? 'UE' : 'Otro tipo'
+    };
+    return interpretaciones[nombreVar] || valor.toString();
+  };
 
-          return `
-            <div class="technical-details">
-              <button class="collapsible">🔍 Ver Detalles Técnicos del Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</button>
-              <div class="collapsible-content">
-                <div class="result-card" style="margin: 0;">
-                  <h4>Información Técnica</h4>
-                  <p><strong>Predicción original:</strong> ${predTexto}</p>
-                  <p><strong>Probabilidad:</strong> ${probaPorc}%</p>
-                  
-                  ${(resultado.grafico_probabilidades_base64) ? `
-                  <div class="lime-card">
-                    <h4>Distribución de Probabilidades</h4>
-                    <img src="data:image/png;base64,${resultado.grafico_probabilidades_base64}" alt="Probabilidades por clase" style="max-width:100%; height:auto;" />
-                  </div>` : ''}
-                  
-                  ${reglasHTML}
-                  ${tablaHTML}
-                </div>
-              </div>
-            </div>`;
-        };
+  // 📊 DETERMINAR SIGNIFICANCIA
+  const determinarSignificancia = (probabilidad) => {
+    if (probabilidad >= 0.8) {
+      return {
+        nivel: 'Alta',
+        interpretacion: 'Sugerenica estadísticamente robusta',
+        implicacion: 'El modelo muestra alta certeza en la clasificación'
+      };
+    }
+    if (probabilidad >= 0.6) {
+      return {
+        nivel: 'Moderada', 
+        interpretacion: 'Sugerenica con validez estadística aceptable',
+        implicacion: 'Resultado confiable con ciertas limitaciones'
+      };
+    }
+    return {
+      nivel: 'Baja',
+      interpretacion: 'Sugerencia con limitaciones estadísticas',
+      implicacion: 'Se requiere análisis adicional para validar el resultado'
+    };
+  };
 
+  // 🎯 ANALIZAR FACTORES Y GENERAR INTERPRETACIÓN CORRECTA
+  const analizarFactores = (tabla_lime) => {
+    if (!tabla_lime || tabla_lime.length === 0) {
+      return {
+        hayPositivos: false,
+        hayNegativos: false,
+        interpretacion: 'No se encontraron variables explicativas en el análisis LIME.'
+      };
+    }
+
+    const factoresPositivos = tabla_lime.filter(f => f.influencia === "Positiva");
+    const factoresNegativos = tabla_lime.filter(f => f.influencia === "Negativa");
+    
+    const hayPositivos = factoresPositivos.length > 0;
+    const hayNegativos = factoresNegativos.length > 0;
+
+    let interpretacion = '';
+
+    if (hayPositivos && hayNegativos) {
+      const nombresPositivos = factoresPositivos.map(f => explicarVariable(f.caracteristica)).join(', ');
+      const nombresNegativos = factoresNegativos.map(f => explicarVariable(f.caracteristica)).join(', ');
+      
+      interpretacion = 'Las variables que <strong>apoyan</strong> la predicción de "' + predTexto + '" incluyen: ' + nombresPositivos + '. ';
+      interpretacion += 'Las variables que <strong>contradicen</strong> esta clasificación incluyen: ' + nombresNegativos + '. ';
+      interpretacion += 'El modelo balancea estos factores para llegar a la sugerenica final.';
+      
+    } else if (hayPositivos && !hayNegativos) {
+      const nombresPositivos = factoresPositivos.map(f => explicarVariable(f.caracteristica)).join(', ');
+      interpretacion = 'Todas las variables analizadas <strong>apoyan</strong> la sugerencia de "' + predTexto + '": ' + nombresPositivos + '. ';
+      interpretacion += 'No se identificaron factores que contradigan esta clasificación.';
+      
+    } else if (!hayPositivos && hayNegativos) {
+      const nombresNegativos = factoresNegativos.map(f => explicarVariable(f.caracteristica)).join(', ');
+      interpretacion = '<strong>No se encontraron características con influencia positiva</strong> para la clase "' + predTexto + '". ';
+      interpretacion += 'Las variables analizadas (' + nombresNegativos + ') sugieren <strong>otras clasificaciones</strong>. ';
+      interpretacion += 'El modelo predice esta clase posiblemente por <em>descarte de alternativas</em> o por <em>interacciones complejas no capturadas</em> en este análisis local.';
+      
+    } else {
+      interpretacion = 'El análisis LIME no pudo identificar factores explicativos claros. Esto puede indicar que la sugerencia se basa en interacciones muy complejas entre variables.';
+    }
+
+    return {
+      hayPositivos,
+      hayNegativos,
+      factoresPositivos,
+      factoresNegativos,
+      interpretacion
+    };
+  };
+
+  const significancia = determinarSignificancia(proba);
+  const analisisFactores = analizarFactores(resultado.tabla_lime);
+
+  // 🔨 CONSTRUIR HTML
+  let explicacionHTML = "";
+  if (resultado.reglas_por_clase) {
+    explicacionHTML += '<div class="lime-rules">';
+    explicacionHTML += '<h4>📋 Análisis de Interpretabilidad del Modelo (LIME)</h4>';
+    
+    // Sección de resultado
+    explicacionHTML += '<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+    explicacionHTML += '<h5 style="margin-top: 0; color: #2c3e50;">Resultado de la sugerencia</h5>';
+    explicacionHTML += '<p><strong>Clasificación predicha:</strong> ' + predTexto + '</p>';
+    explicacionHTML += '<p><strong>Confianza estadística:</strong> ' + significancia.nivel + ' (' + probaPorc + '%)</p>';
+    explicacionHTML += '<p style="font-style: italic; color: #5a6c7d;">' + significancia.interpretacion + '. ' + significancia.implicacion + '.</p>';
+    explicacionHTML += '</div>';
+
+    // Metodología LIME
+    explicacionHTML += '<div style="background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+    explicacionHTML += '<h5 style="margin-top: 0; color: #2c3e50;">Metodología LIME</h5>';
+    explicacionHTML += '<p style="font-size: 14px; line-height: 1.6;">';
+    explicacionHTML += 'Local Interpretable Model-agnostic Explanations (LIME) es una técnica que explica ';
+    explicacionHTML += 'la sugerenica del modelo de machine learning mediante la aproximación local del ';
+    explicacionHTML += 'comportamiento del modelo. El análisis identifica las variables con mayor peso ';
+    explicacionHTML += 'explicativo en la decisión específica, basándose en un dataset de 493,740 contratos ';
+    explicacionHTML += 'públicos europeos.';
+    explicacionHTML += '</p>';
+    explicacionHTML += '</div>';
+
+    
+    
+    
+    explicacionHTML += '</div>';
+  }
+
+  // 📊 TABLA DE FACTORES CON INTERPRETACIÓN CORRECTA
+  let tablaHTML = "";
+  if (resultado.tabla_lime && resultado.tabla_lime.length > 0) {
+    tablaHTML += '<div class="lime-rules" style="margin-top: 20px;">';
+    tablaHTML += '<h4>📊 Variables Explicativas del Modelo</h4>';
+    
+    // Mostrar resumen de factores encontrados
+    if (!analisisFactores.hayPositivos) {
+      tablaHTML += '<div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-bottom: 15px;">';
+      tablaHTML += '<h5 style="margin-top: 0; color: #856404;">⚠️ Hallazgo Importante</h5>';
+      tablaHTML += '<p style="margin-bottom: 0; font-size: 14px;"><strong>No se encontraron características con influencia positiva</strong> para esta sugerencia. ';
+      tablaHTML += 'Esto indica que el modelo clasifica por descarte o por factores no capturados en este análisis local.</p>';
+      tablaHTML += '</div>';
+    }
+    
+    tablaHTML += '<table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px;">';
+    
+    // Encabezados
+    tablaHTML += '<thead>';
+    tablaHTML += '<tr style="background: #34495e; color: white;">';
+    tablaHTML += '<th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Variable</th>';
+    tablaHTML += '<th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Valor</th>';
+    tablaHTML += '<th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Influencia</th>';
+    tablaHTML += '<th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Interpretación</th>';
+    tablaHTML += '</tr>';
+    tablaHTML += '</thead>';
+    tablaHTML += '<tbody>';
+
+    // Filas de datos - factores positivos primero
+    if (analisisFactores.hayPositivos) {
+      analisisFactores.factoresPositivos.forEach(factor => {
+        const nombreVar = explicarVariable(factor.caracteristica);
+        const valorInterpretado = interpretarValor(factor.caracteristica, factor.valor);
+
+        tablaHTML += '<tr style="background: #d5f4e6;">';
+        tablaHTML += '<td style="border: 1px solid #ddd; padding: 10px; font-weight: 500;">' + nombreVar + '</td>';
+        tablaHTML += '<td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-family: monospace;">' + factor.valor + '</td>';
+        tablaHTML += '<td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #27ae60; font-weight: bold;">↗ Positiva</td>';
+        tablaHTML += '<td style="border: 1px solid #ddd; padding: 10px; font-size: 12px; color: #555;">' + valorInterpretado + '</td>';
+        tablaHTML += '</tr>';
+      });
+    }
+
+    // Luego factores negativos
+    if (analisisFactores.hayNegativos) {
+      analisisFactores.factoresNegativos.forEach(factor => {
+        const nombreVar = explicarVariable(factor.caracteristica);
+        const valorInterpretado = interpretarValor(factor.caracteristica, factor.valor);
+
+        tablaHTML += '<tr style="background: #fdeaea;">';
+        tablaHTML += '<td style="border: 1px solid #ddd; padding: 10px; font-weight: 500;">' + nombreVar + '</td>';
+        tablaHTML += '<td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-family: monospace;">' + factor.valor + '</td>';
+        tablaHTML += '<td style="border: 1px solid #ddd; padding: 10px; text-align: center; color: #e74c3c; font-weight: bold;">↙ Negativa</td>';
+        tablaHTML += '<td style="border: 1px solid #ddd; padding: 10px; font-size: 12px; color: #555;">' + valorInterpretado + '</td>';
+        tablaHTML += '</tr>';
+      });
+    }
+
+    tablaHTML += '</tbody>';
+    tablaHTML += '</table>';
+
+    // Interpretación personalizada según los factores encontrados
+    const colorFondo = analisisFactores.hayPositivos ? '#e8f5e8' : '#fff3cd';
+    const colorBorde = analisisFactores.hayPositivos ? '#27ae60' : '#ffeaa7';
+    
+    tablaHTML += '<div style="background: ' + colorFondo + '; border: 1px solid ' + colorBorde + '; padding: 15px; border-radius: 8px; margin-top: 15px;">';
+    tablaHTML += '<h5 style="margin-top: 0; color: #856404;">💡 Interpretación Específica</h5>';
+    tablaHTML += '<p style="margin-bottom: 10px; font-size: 14px; line-height: 1.6;">' + analisisFactores.interpretacion + '</p>';
+    tablaHTML += '<p style="margin-bottom: 0; font-size: 13px; color: #6c757d; font-style: italic;">';
+    tablaHTML += '<strong>Limitaciones:</strong> Este análisis LIME es específico para esta instancia y proporciona una ';
+    tablaHTML += 'aproximación local del comportamiento del modelo ' + (nombre === "random_forest" ? "Random Forest" : "Gradient Boosting") + '. ';
+    if (!analisisFactores.hayPositivos) {
+      tablaHTML += 'La ausencia de factores positivos sugiere que la predicción se basa en interacciones complejas no capturadas por LIME.';
+    }
+    tablaHTML += '</p>';
+    tablaHTML += '</div>';
+    tablaHTML += '</div>';
+  }
+
+  return `
+    <div class="technical-details">
+      <button class="collapsible">🔬 Análisis de Interpretabilidad del Modelo ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</button>
+      <div class="collapsible-content">
+        <div class="result-card" style="margin: 0;">
+          <h4>Información Técnica del Modelo</h4>
+          <p><strong>Algoritmo:</strong> ${nombre === "random_forest" ? "Random Forest" : "Gradient Boosting"}</p>
+          <p><strong>Sugerencia:</strong> ${predTexto}</p>
+          <p><strong>Confianza:</strong> ${probaPorc}%</p>
+          
+          ${(resultado.grafico_probabilidades_base64) ? `
+          <div class="lime-card">
+            <h4>📈 Distribución de Probabilidades por Clase</h4>
+            <img src="data:image/png;base64,${resultado.grafico_probabilidades_base64}" alt="Distribución de probabilidades" style="max-width:100%; height:auto;" />
+          </div>` : ''}
+          
+          ${explicacionHTML}
+          ${tablaHTML}
+        </div>
+      </div>
+    </div>`;
+};
         // Agregar detalles técnicos colapsables
         resultadosDiv.innerHTML += mostrarDetallesTecnicos(modelo, data);
 
@@ -772,27 +964,11 @@
         makeCollapsible();
 
         // Mostrar mensaje explicativo si existe
-        if (data.mensaje_explicativo) {
-          if (!resumenDiv.innerHTML.includes('Ajustes automáticos aplicados')) {
-            resumenDiv.classList.remove("error");
-            resumenDiv.innerHTML = `
-              <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60;">
-                <h4 style="margin: 0 0 10px 0; color: #27ae60;">📊 Análisis Completo</h4>
-                <p style="margin: 0; line-height: 1.5;">${data.mensaje_explicativo}</p>
-              </div>`;
-          } else {
-            // Añadir al final si ya hay warnings
-            resumenDiv.innerHTML += `
-              <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60; margin-top: 15px;">
-                <h4 style="margin: 0 0 10px 0; color: #27ae60;">📊 Análisis Completo</h4>
-                <p style="margin: 0; line-height: 1.5;">${data.mensaje_explicativo}</p>
-              </div>`;
-          }
-        }
+        
 
       } catch (error) {
         resumenDiv.classList.add("error");
-        resumenDiv.innerText = "Error al obtener la predicción.";
+        resumenDiv.innerText = "Error al obtener la sugerencia.";
         console.error(error);
       }
     }
